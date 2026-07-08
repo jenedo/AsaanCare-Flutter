@@ -67,9 +67,17 @@ class AppRouter {
         );
 
       case AppRoutes.medicalRecords:
+        final authController = sl<AuthController>();
+        final patientId =
+            authController.currentUser?.id ??
+            PrescriptionController.mockPatientId;
+
         return _smoothRoute(
           settings: settings,
-          child: MedicalRecordsScreen(controller: sl<PrescriptionController>()),
+          child: MedicalRecordsScreen(
+            controller: sl<PrescriptionController>(),
+            patientId: patientId,
+          ),
         );
 
       default:

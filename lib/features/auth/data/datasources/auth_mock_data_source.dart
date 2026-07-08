@@ -26,7 +26,7 @@ class AuthMockDataSource {
     }
 
     _currentUser = AuthUserModel(
-      id: 'patient_mock_001',
+      id: 'mock_patient_001',
       fullName: 'AsaanCare Patient',
       emailOrPhone: cleanEmailOrPhone,
       role: UserRole.patient,
@@ -58,7 +58,7 @@ class AuthMockDataSource {
     }
 
     _currentUser = AuthUserModel(
-      id: 'patient_mock_001',
+      id: 'mock_patient_001',
       fullName: cleanFullName,
       emailOrPhone: cleanEmailOrPhone,
       role: UserRole.patient,

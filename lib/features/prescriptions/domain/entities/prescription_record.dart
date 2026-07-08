@@ -4,6 +4,8 @@ enum PrescriptionSource { patientUploaded, doctorIssued }
 
 enum PrescriptionStatus { pending, reviewed, rejected }
 
+enum HealthRecordType { prescription, labReport, imaging }
+
 class PrescriptionRecord {
   const PrescriptionRecord({
     required this.id,
@@ -14,27 +16,36 @@ class PrescriptionRecord {
     required this.uploadedAt,
     required this.source,
     required this.status,
+    required this.recordType,
+    required this.title,
+    required this.summary,
+    required this.issuer,
   });
 
   final String id;
   final String patientId;
   final String fileName;
 
-  /// Temporary local bytes before upload.
-  /// Do not keep this permanently after backend upload.
+  /// Temporary local bytes or demo downloadable bytes.
+  /// Production should fetch short-lived signed bytes from authenticated storage.
   final Uint8List? fileBytes;
 
   /// Backend/private storage URL.
-  /// In real production this should be a signed/private URL, not public.
+  /// Production should use a short-lived signed/private URL, never a public URL.
   final String? fileUrl;
 
   final DateTime uploadedAt;
   final PrescriptionSource source;
   final PrescriptionStatus status;
+  final HealthRecordType recordType;
+  final String title;
+  final String summary;
+  final String issuer;
 
   bool get hasLocalFile => fileBytes != null && fileBytes!.isNotEmpty;
 
-  bool get isUploaded => fileUrl != null && fileUrl!.trim().isNotEmpty;
+  bool get isUploaded =>
+      hasLocalFile || (fileUrl != null && fileUrl!.trim().isNotEmpty);
 
   bool get isPending => status == PrescriptionStatus.pending;
 
@@ -51,6 +62,10 @@ class PrescriptionRecord {
     DateTime? uploadedAt,
     PrescriptionSource? source,
     PrescriptionStatus? status,
+    HealthRecordType? recordType,
+    String? title,
+    String? summary,
+    String? issuer,
   }) {
     return PrescriptionRecord(
       id: id ?? this.id,
@@ -61,30 +76,39 @@ class PrescriptionRecord {
       uploadedAt: uploadedAt ?? this.uploadedAt,
       source: source ?? this.source,
       status: status ?? this.status,
+      recordType: recordType ?? this.recordType,
+      title: title ?? this.title,
+      summary: summary ?? this.summary,
+      issuer: issuer ?? this.issuer,
     );
   }
 }
 
 extension PrescriptionSourceX on PrescriptionSource {
   String get label {
-    switch (this) {
-      case PrescriptionSource.patientUploaded:
-        return 'Patient Uploaded';
-      case PrescriptionSource.doctorIssued:
-        return 'Doctor Issued';
-    }
+    return switch (this) {
+      PrescriptionSource.patientUploaded => 'Patient Uploaded',
+      PrescriptionSource.doctorIssued => 'Doctor Issued',
+    };
   }
 }
 
 extension PrescriptionStatusX on PrescriptionStatus {
   String get label {
-    switch (this) {
-      case PrescriptionStatus.pending:
-        return 'Pending';
-      case PrescriptionStatus.reviewed:
-        return 'Reviewed';
-      case PrescriptionStatus.rejected:
-        return 'Rejected';
-    }
+    return switch (this) {
+      PrescriptionStatus.pending => 'Pending',
+      PrescriptionStatus.reviewed => 'Reviewed',
+      PrescriptionStatus.rejected => 'Rejected',
+    };
+  }
+}
+
+extension HealthRecordTypeX on HealthRecordType {
+  String get label {
+    return switch (this) {
+      HealthRecordType.prescription => 'Prescription',
+      HealthRecordType.labReport => 'Lab Report',
+      HealthRecordType.imaging => 'Imaging',
+    };
   }
 }

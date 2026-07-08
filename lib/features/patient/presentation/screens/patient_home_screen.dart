@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/layout/app_layout.dart';
 import '../../../../core/routes/app_routes.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_bottom_nav_bar.dart';
@@ -58,7 +59,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         return;
 
       case 3:
-        _showComingSoon('Records');
+        Navigator.of(context).pushNamed(AppRoutes.medicalRecords);
         return;
 
       case 4:
@@ -82,9 +83,16 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         bottom: false,
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 430),
+            constraints: const BoxConstraints(
+              maxWidth: AppLayout.maxMobileContentWidth,
+            ),
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(26, 18, 26, 26),
+              padding: EdgeInsets.fromLTRB(
+                AppLayout.horizontalPadding(context),
+                18,
+                AppLayout.horizontalPadding(context),
+                26,
+              ),
               children: [
                 _Header(
                   avatarAsset: _userAvatar,
@@ -142,44 +150,45 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 14),
-                SizedBox(
-                  height: 106,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: PatientHomeCard(
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final compact = constraints.maxWidth < 350;
+                    final columns = compact ? 2 : 4;
+
+                    return GridView.count(
+                      crossAxisCount: columns,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: compact ? 1.35 : 0.82,
+                      children: [
+                        PatientHomeCard(
                           icon: Icons.calendar_month_outlined,
                           title: 'Book\nAppointment',
                           iconColor: const Color(0xFF2563EB),
                           onTap: () => _openDoctor('doctor_ali'),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: PatientHomeCard(
+                        PatientHomeCard(
                           icon: Icons.medication_liquid_outlined,
                           title: 'Order\nMedicine',
                           onTap: _openPharmacy,
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: PatientHomeCard(
+                        PatientHomeCard(
                           icon: Icons.upload_file_outlined,
                           title: 'Upload\nPrescription',
-                          onTap: _openPharmacy,
+                          onTap: () => Navigator.of(
+                            context,
+                          ).pushNamed(AppRoutes.medicalRecords),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: PatientHomeCard(
+                        PatientHomeCard(
                           icon: Icons.health_and_safety_outlined,
                           title: 'Health\nTools',
                           onTap: () => _showComingSoon('Health tools'),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 24),
                 _SectionHeader(

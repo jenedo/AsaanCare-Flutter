@@ -5,6 +5,7 @@ class PrescriptionOrder {
     required this.uploadedDate,
     required this.isVerified,
     required this.imageAsset,
+    required this.medicineIds,
   });
 
   final String id;
@@ -12,4 +13,5 @@ class PrescriptionOrder {
   final String uploadedDate;
   final bool isVerified;
   final String imageAsset;
+  final List<String> medicineIds;
 }

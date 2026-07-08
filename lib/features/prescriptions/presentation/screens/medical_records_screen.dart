@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/design/app_motion.dart';
 import '../../../../core/routes/app_routes.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_bottom_nav_bar.dart';
 import '../../domain/entities/prescription_record.dart';
 import '../controllers/prescription_controller.dart';
+
+enum _RecordFilter { all, prescriptions, labReports, imaging }
 
 class MedicalRecordsScreen extends StatefulWidget {
   const MedicalRecordsScreen({
@@ -21,6 +24,39 @@ class MedicalRecordsScreen extends StatefulWidget {
 }
 
 class _MedicalRecordsScreenState extends State<MedicalRecordsScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+
+  _RecordFilter _selectedFilter = _RecordFilter.all;
+  bool _showSearch = false;
+
+  List<PrescriptionRecord> get _filteredRecords {
+    final query = _searchController.text.trim().toLowerCase();
+
+    return widget.controller.records
+        .where((record) {
+          final matchesFilter = switch (_selectedFilter) {
+            _RecordFilter.all => true,
+            _RecordFilter.prescriptions =>
+              record.recordType == HealthRecordType.prescription,
+            _RecordFilter.labReports =>
+              record.recordType == HealthRecordType.labReport,
+            _RecordFilter.imaging =>
+              record.recordType == HealthRecordType.imaging,
+          };
+
+          final matchesSearch =
+              query.isEmpty ||
+              record.title.toLowerCase().contains(query) ||
+              record.summary.toLowerCase().contains(query) ||
+              record.issuer.toLowerCase().contains(query) ||
+              record.fileName.toLowerCase().contains(query);
+
+          return matchesFilter && matchesSearch;
+        })
+        .toList(growable: false);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -32,6 +68,8 @@ class _MedicalRecordsScreenState extends State<MedicalRecordsScreen> {
   void dispose() {
     widget.controller.removeListener(_refresh);
     widget.controller.dispose();
+    _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -43,6 +81,7 @@ class _MedicalRecordsScreenState extends State<MedicalRecordsScreen> {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
+        behavior: SnackBarBehavior.floating,
         backgroundColor: isError ? AppTheme.danger : null,
         content: Text(message),
       ),
@@ -59,6 +98,10 @@ class _MedicalRecordsScreenState extends State<MedicalRecordsScreen> {
     final error = widget.controller.errorMessage;
 
     if (uploaded) {
+      setState(() {
+        _selectedFilter = _RecordFilter.all;
+        _searchController.clear();
+      });
       _showSnackBar('Prescription uploaded successfully.');
       return;
     }
@@ -68,23 +111,39 @@ class _MedicalRecordsScreenState extends State<MedicalRecordsScreen> {
     }
   }
 
+  Future<void> _downloadRecord(PrescriptionRecord record) async {
+    final downloaded = await widget.controller.downloadRecord(record);
+
+    if (!mounted) return;
+
+    if (downloaded) {
+      _showSnackBar('Download started for ${record.fileName}.');
+      return;
+    }
+
+    final error = widget.controller.errorMessage;
+    if (error != null && error.trim().isNotEmpty) {
+      _showSnackBar(error, isError: true);
+    }
+  }
+
   Future<void> _confirmDelete(PrescriptionRecord record) async {
     final shouldDelete = await showDialog<bool>(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           title: const Text('Delete record?'),
           content: Text(
-            'This will remove "${record.fileName}" from your records.',
+            'This will remove "${record.title}" from your records.',
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
+              onPressed: () => Navigator.of(dialogContext).pop(false),
               child: const Text('Cancel'),
             ),
             FilledButton(
               style: FilledButton.styleFrom(backgroundColor: AppTheme.danger),
-              onPressed: () => Navigator.of(context).pop(true),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
               child: const Text('Delete'),
             ),
           ],
@@ -112,12 +171,121 @@ class _MedicalRecordsScreenState extends State<MedicalRecordsScreen> {
     );
   }
 
-  void _viewRecord(PrescriptionRecord record) {
-    _showSnackBar(
-      record.isUploaded
-          ? 'Record viewer coming next.'
-          : 'This record is not uploaded yet.',
+  void _showRecordDetails(PrescriptionRecord record) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        final visual = _recordVisual(record.recordType);
+
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(22, 0, 22, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  height: 76,
+                  width: 76,
+                  decoration: BoxDecoration(
+                    color: visual.background,
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                  child: Icon(visual.icon, color: visual.color, size: 40),
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  record.title,
+                  style: const TextStyle(
+                    color: Color(0xFF07132D),
+                    fontSize: 25,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  record.summary,
+                  style: const TextStyle(
+                    color: Color(0xFF536078),
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _DetailRow(label: 'Issued by', value: record.issuer),
+                _DetailRow(
+                  label: 'Date',
+                  value: _formatDate(record.uploadedAt),
+                ),
+                _DetailRow(label: 'Status', value: record.status.label),
+                _DetailRow(label: 'File', value: record.fileName),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: widget.controller.isDownloading
+                            ? null
+                            : () {
+                                Navigator.of(sheetContext).pop();
+                                _downloadRecord(record);
+                              },
+                        icon: const Icon(Icons.download_rounded),
+                        label: const Text('Download'),
+                      ),
+                    ),
+                    if (record.source ==
+                        PrescriptionSource.patientUploaded) ...[
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton.icon(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppTheme.danger,
+                          ),
+                          onPressed: widget.controller.isDeleting
+                              ? null
+                              : () {
+                                  Navigator.of(sheetContext).pop();
+                                  _confirmDelete(record);
+                                },
+                          icon: const Icon(Icons.delete_outline_rounded),
+                          label: const Text('Delete'),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
+  }
+
+  void _toggleSearch() {
+    setState(() {
+      _showSearch = !_showSearch;
+      if (!_showSearch) {
+        _searchController.clear();
+        _searchFocusNode.unfocus();
+      }
+    });
+
+    if (_showSearch) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _searchFocusNode.requestFocus();
+      });
+    }
+  }
+
+  void _clearFilters() {
+    setState(() {
+      _selectedFilter = _RecordFilter.all;
+      _searchController.clear();
+    });
   }
 
   void _handleNavTap(int index) {
@@ -125,24 +293,19 @@ class _MedicalRecordsScreenState extends State<MedicalRecordsScreen> {
       case 0:
         Navigator.of(context).pushReplacementNamed(AppRoutes.patientHome);
         return;
-
       case 1:
         Navigator.of(
           context,
         ).pushNamed(AppRoutes.doctorDetail, arguments: 'doctor_ali');
         return;
-
       case 2:
         Navigator.of(context).pushReplacementNamed(AppRoutes.pharmacy);
         return;
-
       case 3:
         return;
-
       case 4:
-        _showSnackBar('Wallet screen coming next.');
+        _showSnackBar('Wallet will be connected in the payments phase.');
         return;
-
       default:
         return;
     }
@@ -151,6 +314,10 @@ class _MedicalRecordsScreenState extends State<MedicalRecordsScreen> {
   @override
   Widget build(BuildContext context) {
     final controller = widget.controller;
+    final records = _filteredRecords;
+    final hasActiveFilter =
+        _selectedFilter != _RecordFilter.all ||
+        _searchController.text.trim().isNotEmpty;
 
     return Scaffold(
       backgroundColor: AppTheme.surface,
@@ -171,14 +338,14 @@ class _MedicalRecordsScreenState extends State<MedicalRecordsScreen> {
                   color: Colors.white,
                 ),
               )
-            : const Icon(Icons.upload_file_outlined),
+            : const Icon(Icons.upload_file_rounded),
         label: Text(controller.isUploading ? 'Uploading' : 'Upload'),
       ),
       body: SafeArea(
         bottom: false,
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 430),
+            constraints: const BoxConstraints(maxWidth: 460),
             child: RefreshIndicator(
               onRefresh: () {
                 return controller.loadPrescriptions(
@@ -186,27 +353,92 @@ class _MedicalRecordsScreenState extends State<MedicalRecordsScreen> {
                 );
               },
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(24, 18, 24, 120),
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 120),
                 children: [
-                  _Header(
-                    onSearchTap: () =>
-                        _showSnackBar('Search records coming next.'),
+                  _Header(searchOpen: _showSearch, onSearchTap: _toggleSearch),
+                  AnimatedSize(
+                    duration: AppMotion.medium,
+                    curve: AppMotion.standard,
+                    child: _showSearch
+                        ? Padding(
+                            padding: const EdgeInsets.only(top: 16),
+                            child: TextField(
+                              controller: _searchController,
+                              focusNode: _searchFocusNode,
+                              onChanged: (_) => setState(() {}),
+                              decoration: InputDecoration(
+                                hintText: 'Search reports, doctors, labs...',
+                                prefixIcon: const Icon(Icons.search_rounded),
+                                suffixIcon: _searchController.text.isNotEmpty
+                                    ? IconButton(
+                                        onPressed: () {
+                                          _searchController.clear();
+                                          setState(() {});
+                                        },
+                                        icon: const Icon(Icons.close_rounded),
+                                      )
+                                    : null,
+                                filled: true,
+                                fillColor: AppTheme.surface,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(18),
+                                  borderSide: const BorderSide(
+                                    color: AppTheme.border,
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(18),
+                                  borderSide: const BorderSide(
+                                    color: AppTheme.border,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(18),
+                                  borderSide: const BorderSide(
+                                    color: AppTheme.primary,
+                                    width: 1.7,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          )
+                        : const SizedBox.shrink(),
                   ),
-                  const SizedBox(height: 24),
-                  const _FilterChips(),
+                  const SizedBox(height: 22),
+                  _FilterChips(
+                    selected: _selectedFilter,
+                    onSelected: (filter) {
+                      setState(() => _selectedFilter = filter);
+                    },
+                  ),
                   const SizedBox(height: 28),
-                  const _SectionTitle(title: 'Recent Records'),
-                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: _SectionTitle(title: 'Recent Records'),
+                      ),
+                      if (hasActiveFilter)
+                        TextButton(
+                          onPressed: _clearFilters,
+                          child: const Text('Clear'),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
                   _RecordsBody(
                     controller: controller,
+                    records: records,
+                    hasActiveFilter: hasActiveFilter,
                     onRetry: () => controller.loadPrescriptions(
                       patientId: widget.patientId,
                     ),
                     onUploadTap: _uploadPrescription,
-                    onViewTap: _viewRecord,
-                    onDeleteTap: _confirmDelete,
+                    onClearFilters: _clearFilters,
+                    onViewTap: _showRecordDetails,
+                    onDownloadTap: _downloadRecord,
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 30),
                   const _SectionTitle(title: 'Health Summary'),
                   const SizedBox(height: 16),
                   const _HealthSummaryRow(),
@@ -222,62 +454,10 @@ class _MedicalRecordsScreenState extends State<MedicalRecordsScreen> {
   }
 }
 
-class _RecordsBody extends StatelessWidget {
-  const _RecordsBody({
-    required this.controller,
-    required this.onRetry,
-    required this.onUploadTap,
-    required this.onViewTap,
-    required this.onDeleteTap,
-  });
-
-  final PrescriptionController controller;
-  final VoidCallback onRetry;
-  final VoidCallback onUploadTap;
-  final ValueChanged<PrescriptionRecord> onViewTap;
-  final ValueChanged<PrescriptionRecord> onDeleteTap;
-
-  @override
-  Widget build(BuildContext context) {
-    if (controller.isLoading && controller.records.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.only(top: 70),
-        child: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    if (controller.hasError && controller.records.isEmpty) {
-      return _ErrorState(
-        message: controller.errorMessage ?? 'Something went wrong.',
-        onRetry: onRetry,
-      );
-    }
-
-    if (controller.records.isEmpty) {
-      return _EmptyState(onUploadTap: onUploadTap);
-    }
-
-    return Column(
-      children: controller.records
-          .map((record) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _RecordCard(
-                record: record,
-                isDeleting: controller.isDeleting,
-                onViewTap: () => onViewTap(record),
-                onDeleteTap: () => onDeleteTap(record),
-              ),
-            );
-          })
-          .toList(growable: false),
-    );
-  }
-}
-
 class _Header extends StatelessWidget {
-  const _Header({required this.onSearchTap});
+  const _Header({required this.searchOpen, required this.onSearchTap});
 
+  final bool searchOpen;
   final VoidCallback onSearchTap;
 
   @override
@@ -296,11 +476,11 @@ class _Header extends StatelessWidget {
           ),
         ),
         IconButton(
-          tooltip: 'Search records',
+          tooltip: searchOpen ? 'Close search' : 'Search records',
           onPressed: onSearchTap,
-          icon: const Icon(
-            Icons.search_rounded,
-            color: Color(0xFF07132D),
+          icon: Icon(
+            searchOpen ? Icons.close_rounded : Icons.search_rounded,
+            color: const Color(0xFF07132D),
             size: 34,
           ),
         ),
@@ -310,43 +490,48 @@ class _Header extends StatelessWidget {
 }
 
 class _FilterChips extends StatelessWidget {
-  const _FilterChips();
+  const _FilterChips({required this.selected, required this.onSelected});
+
+  final _RecordFilter selected;
+  final ValueChanged<_RecordFilter> onSelected;
 
   @override
   Widget build(BuildContext context) {
-    const chips = ['All', 'Prescriptions', 'Lab Reports', 'Imaging'];
+    const items = [
+      (_RecordFilter.all, 'All'),
+      (_RecordFilter.prescriptions, 'Prescriptions'),
+      (_RecordFilter.labReports, 'Lab Reports'),
+      (_RecordFilter.imaging, 'Imaging'),
+    ];
 
     return SizedBox(
-      height: 48,
+      height: 52,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: chips.length,
-        separatorBuilder: (context, index) => const SizedBox(width: 10),
+        itemCount: items.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemBuilder: (context, index) {
-          final selected = index == 0;
+          final item = items[index];
+          final isSelected = selected == item.$1;
 
-          return Semantics(
-            button: true,
-            selected: selected,
-            label: chips[index],
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 22),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: selected ? AppTheme.softTeal : AppTheme.surface,
-                borderRadius: BorderRadius.circular(13),
-                border: Border.all(
-                  color: selected ? const Color(0xFF9ADBD4) : AppTheme.border,
-                ),
-              ),
-              child: Text(
-                chips[index],
-                style: TextStyle(
-                  color: selected ? AppTheme.primary : const Color(0xFF07132D),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
+          return ChoiceChip(
+            label: Text(item.$2),
+            selected: isSelected,
+            onSelected: (_) => onSelected(item.$1),
+            showCheckmark: false,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            labelStyle: TextStyle(
+              color: isSelected ? AppTheme.primary : const Color(0xFF07132D),
+              fontSize: 15.5,
+              fontWeight: FontWeight.w900,
+            ),
+            selectedColor: AppTheme.softTeal,
+            backgroundColor: AppTheme.surface,
+            side: BorderSide(
+              color: isSelected ? const Color(0xFF9ADBD4) : AppTheme.border,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(13),
             ),
           );
         },
@@ -355,23 +540,88 @@ class _FilterChips extends StatelessWidget {
   }
 }
 
-class _RecordCard extends StatelessWidget {
-  const _RecordCard({
-    required this.record,
-    required this.isDeleting,
+class _RecordsBody extends StatelessWidget {
+  const _RecordsBody({
+    required this.controller,
+    required this.records,
+    required this.hasActiveFilter,
+    required this.onRetry,
+    required this.onUploadTap,
+    required this.onClearFilters,
     required this.onViewTap,
-    required this.onDeleteTap,
+    required this.onDownloadTap,
   });
 
-  final PrescriptionRecord record;
-  final bool isDeleting;
-  final VoidCallback onViewTap;
-  final VoidCallback onDeleteTap;
+  final PrescriptionController controller;
+  final List<PrescriptionRecord> records;
+  final bool hasActiveFilter;
+  final VoidCallback onRetry;
+  final VoidCallback onUploadTap;
+  final VoidCallback onClearFilters;
+  final ValueChanged<PrescriptionRecord> onViewTap;
+  final ValueChanged<PrescriptionRecord> onDownloadTap;
 
   @override
   Widget build(BuildContext context) {
-    final isPending = record.status == PrescriptionStatus.pending;
-    final isDoctorIssued = record.source == PrescriptionSource.doctorIssued;
+    if (controller.isLoading && controller.records.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 60),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (controller.hasError && controller.records.isEmpty) {
+      return _ErrorState(
+        message: controller.errorMessage ?? 'Something went wrong.',
+        onRetry: onRetry,
+      );
+    }
+
+    if (records.isEmpty) {
+      return _EmptyState(
+        filtered: hasActiveFilter,
+        onActionTap: hasActiveFilter ? onClearFilters : onUploadTap,
+      );
+    }
+
+    return AnimatedSwitcher(
+      duration: AppMotion.medium,
+      switchInCurve: AppMotion.standard,
+      child: Column(
+        key: ValueKey(records.map((record) => record.id).join('|')),
+        children: [
+          for (final record in records)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _RecordCard(
+                record: record,
+                isDownloading: controller.isDownloading,
+                onViewTap: () => onViewTap(record),
+                onDownloadTap: () => onDownloadTap(record),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecordCard extends StatelessWidget {
+  const _RecordCard({
+    required this.record,
+    required this.isDownloading,
+    required this.onViewTap,
+    required this.onDownloadTap,
+  });
+
+  final PrescriptionRecord record;
+  final bool isDownloading;
+  final VoidCallback onViewTap;
+  final VoidCallback onDownloadTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final visual = _recordVisual(record.recordType);
 
     return Material(
       color: AppTheme.surface,
@@ -380,14 +630,15 @@ class _RecordCard extends StatelessWidget {
         onTap: onViewTap,
         borderRadius: BorderRadius.circular(18),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          constraints: const BoxConstraints(minHeight: 92),
+          padding: const EdgeInsets.fromLTRB(14, 14, 8, 14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: AppTheme.border),
             boxShadow: const [
               BoxShadow(
-                color: Color(0x0A000000),
-                blurRadius: 16,
+                color: Color(0x08000000),
+                blurRadius: 18,
                 offset: Offset(0, 8),
               ),
             ],
@@ -395,21 +646,13 @@ class _RecordCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                height: 52,
-                width: 52,
+                height: 56,
+                width: 56,
                 decoration: BoxDecoration(
-                  color: isDoctorIssued
-                      ? const Color(0xFFFFF1F1)
-                      : const Color(0xFFEAF7F5),
+                  color: visual.background,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(
-                  isDoctorIssued
-                      ? Icons.receipt_long_outlined
-                      : Icons.upload_file_outlined,
-                  color: isDoctorIssued ? AppTheme.danger : AppTheme.primary,
-                  size: 30,
-                ),
+                child: Icon(visual.icon, color: visual.color, size: 31),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -418,180 +661,49 @@ class _RecordCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      record.fileName.replaceAll('_', ' '),
+                      record.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Color(0xFF07132D),
-                        fontSize: 16.5,
+                        fontSize: 17,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 7),
                     Text(
-                      '${record.source.label} • ${_formatDate(record.uploadedAt)}',
+                      '${record.summary} â€¢ ${_formatDate(record.uploadedAt)}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Color(0xFF657386),
-                        fontSize: 13.3,
+                        fontSize: 14,
                         fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 9),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: _StatusChip(
-                        label: record.status.label,
-                        isPending: isPending,
                       ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    tooltip: 'View record',
-                    onPressed: onViewTap,
-                    icon: const Icon(
-                      Icons.visibility_outlined,
-                      color: AppTheme.primary,
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: 'Delete record',
-                    onPressed: isDeleting ? null : onDeleteTap,
-                    icon: const Icon(
-                      Icons.delete_outline_rounded,
-                      color: AppTheme.danger,
-                    ),
-                  ),
-                ],
+              Container(height: 52, width: 1, color: AppTheme.border),
+              IconButton(
+                tooltip: 'Download ${record.title}',
+                onPressed: isDownloading ? null : onDownloadTap,
+                icon: isDownloading
+                    ? const SizedBox(
+                        height: 19,
+                        width: 19,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(
+                        Icons.download_rounded,
+                        color: AppTheme.primary,
+                        size: 29,
+                      ),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.label, required this.isPending});
-
-  final String label;
-  final bool isPending;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: isPending ? const Color(0xFFFFF3E0) : AppTheme.softTeal,
-        borderRadius: BorderRadius.circular(99),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: isPending ? const Color(0xFFB26A00) : AppTheme.primary,
-          fontSize: 12,
-          fontWeight: FontWeight.w900,
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.onUploadTap});
-
-  final VoidCallback onUploadTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF4FBFA),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.border),
-      ),
-      child: Column(
-        children: [
-          const Icon(
-            Icons.folder_open_outlined,
-            color: AppTheme.primary,
-            size: 48,
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'No prescriptions yet',
-            style: TextStyle(
-              color: Color(0xFF07132D),
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Upload your first prescription to keep it available in your records.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Color(0xFF657386),
-              fontSize: 14,
-              height: 1.35,
-            ),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: onUploadTap,
-            icon: const Icon(Icons.upload_file_outlined),
-            label: const Text('Upload Prescription'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ErrorState extends StatelessWidget {
-  const _ErrorState({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF5F5),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFFFCDD2)),
-      ),
-      child: Column(
-        children: [
-          const Icon(
-            Icons.error_outline_rounded,
-            color: AppTheme.danger,
-            size: 42,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Color(0xFF07132D),
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 14),
-          ElevatedButton(onPressed: onRetry, child: const Text('Retry')),
-        ],
       ),
     );
   }
@@ -602,26 +714,31 @@ class _HealthSummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    const items = [
+      ('Height', '168', 'cm'),
+      ('Weight', '62', 'kg'),
+      ('Blood Group', 'B+', ''),
+    ];
+
+    return Row(
       children: [
-        Expanded(
-          child: _SummaryCard(label: 'Height', value: '168', unit: 'cm'),
-        ),
-        SizedBox(width: 12),
-        Expanded(
-          child: _SummaryCard(label: 'Weight', value: '62', unit: 'kg'),
-        ),
-        SizedBox(width: 12),
-        Expanded(
-          child: _SummaryCard(label: 'Blood Group', value: 'B+', unit: ''),
-        ),
+        for (var index = 0; index < items.length; index++) ...[
+          Expanded(
+            child: _HealthSummaryCard(
+              label: items[index].$1,
+              value: items[index].$2,
+              unit: items[index].$3,
+            ),
+          ),
+          if (index < items.length - 1) const SizedBox(width: 12),
+        ],
       ],
     );
   }
 }
 
-class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({
+class _HealthSummaryCard extends StatelessWidget {
+  const _HealthSummaryCard({
     required this.label,
     required this.value,
     required this.unit,
@@ -634,14 +751,15 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 104,
-      padding: const EdgeInsets.all(14),
+      constraints: const BoxConstraints(minHeight: 132),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppTheme.border),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
@@ -650,40 +768,47 @@ class _SummaryCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: Color(0xFF657386),
-              fontSize: 13.5,
-              fontWeight: FontWeight.w600,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          const Spacer(),
-          RichText(
-            text: TextSpan(
-              children: [
-                TextSpan(
-                  text: value,
+          const SizedBox(height: 18),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Flexible(
+                child: Text(
+                  value,
+                  maxLines: 1,
                   style: const TextStyle(
                     color: Color(0xFF07132D),
-                    fontSize: 26,
+                    fontSize: 27,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                if (unit.isNotEmpty)
-                  TextSpan(
-                    text: ' $unit',
+              ),
+              if (unit.isNotEmpty) ...[
+                const SizedBox(width: 5),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 3),
+                  child: Text(
+                    unit,
                     style: const TextStyle(
                       color: Color(0xFF07132D),
                       fontSize: 16,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
+                ),
               ],
-            ),
+            ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 12),
           const Text(
             'Updated 10 May',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: Color(0xFF657386), fontSize: 11.5),
+            style: TextStyle(color: Color(0xFF657386), fontSize: 12),
           ),
         ],
       ),
@@ -697,39 +822,38 @@ class _SecurityPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      constraints: const BoxConstraints(minHeight: 118),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: const Color(0xFFF0F8F7),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: const Row(
         children: [
-          Icon(Icons.verified_user_outlined, color: AppTheme.primary, size: 46),
-          SizedBox(width: 16),
+          Icon(Icons.shield_outlined, color: AppTheme.primary, size: 52),
+          SizedBox(width: 18),
           Expanded(
-            child: Text.rich(
-              TextSpan(
-                children: [
-                  TextSpan(
-                    text: 'Private Records Flow\n',
-                    style: TextStyle(
-                      color: AppTheme.primary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                    ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Secure & Private',
+                  style: TextStyle(
+                    color: AppTheme.primary,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
                   ),
-                  TextSpan(
-                    text:
-                        'Backend storage will use private files and signed access. Do not expose medical files publicly.',
-                    style: TextStyle(
-                      color: Color(0xFF07132D),
-                      fontSize: 14,
-                      height: 1.35,
-                      fontWeight: FontWeight.w500,
-                    ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Your records are scoped to your authenticated patient account. Production storage will use private signed access.',
+                  style: TextStyle(
+                    color: Color(0xFF07132D),
+                    fontSize: 14,
+                    height: 1.4,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],
@@ -749,7 +873,7 @@ class _SectionTitle extends StatelessWidget {
       title,
       style: const TextStyle(
         color: Color(0xFF07132D),
-        fontSize: 22,
+        fontSize: 21,
         fontWeight: FontWeight.w900,
         letterSpacing: -0.3,
       ),
@@ -757,7 +881,150 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-String _formatDate(DateTime date) {
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 90,
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Color(0xFF657386),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: Color(0xFF07132D),
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.filtered, required this.onActionTap});
+
+  final bool filtered;
+  final VoidCallback onActionTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7FAFA),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            filtered ? Icons.search_off_rounded : Icons.folder_open_rounded,
+            color: AppTheme.primary,
+            size: 44,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            filtered ? 'No matching records' : 'No health records yet',
+            style: const TextStyle(
+              color: Color(0xFF07132D),
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 10),
+          FilledButton(
+            onPressed: onActionTap,
+            child: Text(filtered ? 'Clear filters' : 'Upload prescription'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF3F3),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        children: [
+          const Icon(
+            Icons.error_outline_rounded,
+            color: AppTheme.danger,
+            size: 42,
+          ),
+          const SizedBox(height: 10),
+          Text(message, textAlign: TextAlign.center),
+          const SizedBox(height: 12),
+          FilledButton(onPressed: onRetry, child: const Text('Try again')),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecordVisual {
+  const _RecordVisual({
+    required this.icon,
+    required this.color,
+    required this.background,
+  });
+
+  final IconData icon;
+  final Color color;
+  final Color background;
+}
+
+_RecordVisual _recordVisual(HealthRecordType type) {
+  return switch (type) {
+    HealthRecordType.prescription => const _RecordVisual(
+      icon: Icons.receipt_long_outlined,
+      color: Color(0xFFE53935),
+      background: Color(0xFFFFF1F1),
+    ),
+    HealthRecordType.labReport => const _RecordVisual(
+      icon: Icons.science_outlined,
+      color: AppTheme.primary,
+      background: Color(0xFFEAF7F5),
+    ),
+    HealthRecordType.imaging => const _RecordVisual(
+      icon: Icons.image_search_outlined,
+      color: Color(0xFF2563EB),
+      background: Color(0xFFEEF4FF),
+    ),
+  };
+}
+
+String _formatDate(DateTime value) {
   const months = [
     'Jan',
     'Feb',
@@ -773,5 +1040,5 @@ String _formatDate(DateTime date) {
     'Dec',
   ];
 
-  return '${date.day} ${months[date.month - 1]} ${date.year}';
+  return '${value.day} ${months[value.month - 1]} ${value.year}';
 }

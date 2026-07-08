@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/layout/app_layout.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../appointments/domain/entities/consultation_type.dart';
 import '../../../appointments/presentation/controllers/appointment_booking_controller.dart';
@@ -86,7 +87,9 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
         bottom: false,
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 430),
+            constraints: const BoxConstraints(
+              maxWidth: AppLayout.maxMobileContentWidth,
+            ),
             child: Builder(
               builder: (context) {
                 if (controller.isLoading && doctor == null) {
@@ -110,7 +113,12 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
                 return Stack(
                   children: [
                     ListView(
-                      padding: const EdgeInsets.fromLTRB(24, 18, 24, 128),
+                      padding: EdgeInsets.fromLTRB(
+                        AppLayout.horizontalPadding(context),
+                        18,
+                        AppLayout.horizontalPadding(context),
+                        132,
+                      ),
                       children: [
                         _TopBar(
                           isFavorite: controller.isFavorite,
@@ -216,11 +224,11 @@ class _DoctorProfileHeader extends StatelessWidget {
     return Row(
       children: [
         CircleAvatar(
-          radius: 58,
+          radius: AppLayout.isCompact(context) ? 46 : 54,
           backgroundColor: AppTheme.softTeal,
           backgroundImage: AssetImage(doctor.imageAsset),
         ),
-        const SizedBox(width: 18),
+        const SizedBox(width: 10),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -234,7 +242,7 @@ class _DoctorProfileHeader extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Color(0xFF07132D),
-                        fontSize: 28,
+                        fontSize: 24,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -0.7,
                       ),
@@ -257,7 +265,7 @@ class _DoctorProfileHeader extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: Color(0xFF536078),
-                  fontSize: 17,
+                  fontSize: 15,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -266,7 +274,7 @@ class _DoctorProfileHeader extends StatelessWidget {
                 doctor.specialty,
                 style: const TextStyle(
                   color: AppTheme.primary,
-                  fontSize: 20,
+                  fontSize: 18,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -309,33 +317,40 @@ class _DoctorProfileHeader extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 7,
-                ),
-                decoration: BoxDecoration(
-                  color: AppTheme.softTeal,
-                  borderRadius: BorderRadius.circular(99),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.workspace_premium_outlined,
-                      color: AppTheme.primary,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '${doctor.experienceYears}+ Years Experience',
-                      style: const TextStyle(
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 180),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.softTeal,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.workspace_premium_outlined,
                         color: AppTheme.primary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w900,
+                        size: 17,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 5),
+                      Flexible(
+                        child: Text(
+                          '${doctor.experienceYears}+ Years',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppTheme.primary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -523,7 +538,7 @@ class _ConsultationTypeSection extends StatelessWidget {
               onTap: () => onSelected(ConsultationType.video),
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 10),
           Expanded(
             child: _ConsultationTypeCard(
               type: ConsultationType.audio,
@@ -561,8 +576,8 @@ class _ConsultationTypeCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(15),
         child: Container(
-          height: 94,
-          padding: const EdgeInsets.all(14),
+          constraints: const BoxConstraints(minHeight: 86),
+          padding: const EdgeInsets.all(11),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15),
             border: Border.all(
@@ -575,8 +590,8 @@ class _ConsultationTypeCard extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    height: 48,
-                    width: 48,
+                    height: 42,
+                    width: 42,
                     decoration: BoxDecoration(
                       color: selected ? Colors.white : AppTheme.surface,
                       borderRadius: BorderRadius.circular(14),
@@ -592,7 +607,7 @@ class _ConsultationTypeCard extends StatelessWidget {
                       size: 28,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   Flexible(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -606,7 +621,7 @@ class _ConsultationTypeCard extends StatelessWidget {
                             color: selected
                                 ? AppTheme.primary
                                 : const Color(0xFF07132D),
-                            fontSize: 18,
+                            fontSize: 16,
                             fontWeight: FontWeight.w900,
                           ),
                         ),
@@ -617,7 +632,7 @@ class _ConsultationTypeCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Color(0xFF536078),
-                            fontSize: 13.5,
+                            fontSize: 12,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -833,9 +848,9 @@ class _BookingBottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(18, 0, 18, 18),
-      padding: const EdgeInsets.all(16),
-      height: 92,
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      padding: const EdgeInsets.all(12),
+      height: 86,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [AppTheme.primaryLight, AppTheme.primaryDark],
@@ -852,7 +867,7 @@ class _BookingBottomBar extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(
-            width: 126,
+            width: AppLayout.isCompact(context) ? 92 : 112,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -867,9 +882,9 @@ class _BookingBottomBar extends StatelessWidget {
                 const Spacer(),
                 Text(
                   'Rs. $fee',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
-                    fontSize: 27,
+                    fontSize: AppLayout.isCompact(context) ? 22 : 25,
                     fontWeight: FontWeight.w900,
                     letterSpacing: -0.6,
                   ),
@@ -882,7 +897,7 @@ class _BookingBottomBar extends StatelessWidget {
             width: 1,
             color: Colors.white.withValues(alpha: 0.45),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 10),
           Expanded(
             child: ElevatedButton(
               onPressed: isBooking ? null : onBookTap,
@@ -907,7 +922,7 @@ class _BookingBottomBar extends StatelessWidget {
                   : const Text(
                       'Book Appointment',
                       style: TextStyle(
-                        fontSize: 17,
+                        fontSize: 14,
                         fontWeight: FontWeight.w900,
                       ),
                     ),

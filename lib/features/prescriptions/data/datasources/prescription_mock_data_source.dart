@@ -1,11 +1,14 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import '../../domain/entities/prescription_record.dart';
 
 class PrescriptionMockDataSource {
-  PrescriptionMockDataSource();
+  PrescriptionMockDataSource() {
+    _records.addAll(_seedRecords());
+  }
 
-  static const int _maxFileSizeInBytes = 5 * 1024 * 1024; // 5 MB
+  static const int _maxFileSizeInBytes = 5 * 1024 * 1024;
 
   static const Set<String> _allowedContentTypes = {
     'image/jpeg',
@@ -13,19 +16,73 @@ class PrescriptionMockDataSource {
     'application/pdf',
   };
 
-  final List<PrescriptionRecord> _records = [
-    PrescriptionRecord(
-      id: 'mock_prescription_001',
+  final List<PrescriptionRecord> _records = [];
+
+  List<PrescriptionRecord> _seedRecords() {
+    return [
+      _createDemoRecord(
+        id: 'mock_prescription_001',
+        fileName: 'Dr_Ali_Raza_Prescription.pdf',
+        uploadedAt: DateTime(2024, 5, 18),
+        recordType: HealthRecordType.prescription,
+        title: 'Prescription',
+        summary: 'Dr. Ali Raza',
+        issuer: 'Dr. Ali Raza',
+      ),
+      _createDemoRecord(
+        id: 'mock_lab_001',
+        fileName: 'Lipid_Profile_Report.pdf',
+        uploadedAt: DateTime(2024, 5, 15),
+        recordType: HealthRecordType.labReport,
+        title: 'Lab Report',
+        summary: 'Lipid Profile',
+        issuer: 'AsaanCare Diagnostics',
+      ),
+      _createDemoRecord(
+        id: 'mock_lab_002',
+        fileName: 'Blood_Sugar_FBS_Report.pdf',
+        uploadedAt: DateTime(2024, 5, 12),
+        recordType: HealthRecordType.labReport,
+        title: 'Lab Report',
+        summary: 'Blood Sugar (FBS)',
+        issuer: 'AsaanCare Diagnostics',
+      ),
+      _createDemoRecord(
+        id: 'mock_imaging_001',
+        fileName: 'Chest_XRay_Report.pdf',
+        uploadedAt: DateTime(2024, 5, 10),
+        recordType: HealthRecordType.imaging,
+        title: 'X-Ray Report',
+        summary: 'Chest X-Ray',
+        issuer: 'AsaanCare Imaging',
+      ),
+    ];
+  }
+
+  PrescriptionRecord _createDemoRecord({
+    required String id,
+    required String fileName,
+    required DateTime uploadedAt,
+    required HealthRecordType recordType,
+    required String title,
+    required String summary,
+    required String issuer,
+  }) {
+    return PrescriptionRecord(
+      id: id,
       patientId: 'mock_patient_001',
-      fileName: 'Dr_Ali_Raza_Prescription.pdf',
-      fileBytes: null,
-      fileUrl:
-          'mock://prescriptions/mock_prescription_001/Dr_Ali_Raza_Prescription.pdf',
-      uploadedAt: DateTime(2024, 5, 18),
+      fileName: fileName,
+      fileBytes: _buildDemoPdf(title: title, summary: summary, issuer: issuer),
+      fileUrl: 'mock://records/$id/$fileName',
+      uploadedAt: uploadedAt,
       source: PrescriptionSource.doctorIssued,
       status: PrescriptionStatus.reviewed,
-    ),
-  ];
+      recordType: recordType,
+      title: title,
+      summary: summary,
+      issuer: issuer,
+    );
+  }
 
   Future<PrescriptionRecord> uploadPrescription({
     required String patientId,
@@ -54,15 +111,18 @@ class PrescriptionMockDataSource {
       id: id,
       patientId: trimmedPatientId,
       fileName: trimmedFileName,
-      fileBytes: null,
+      fileBytes: Uint8List.fromList(fileBytes),
       fileUrl: 'mock://prescriptions/$id/$safeFileName',
       uploadedAt: now,
       source: PrescriptionSource.patientUploaded,
       status: PrescriptionStatus.pending,
+      recordType: HealthRecordType.prescription,
+      title: 'Uploaded Prescription',
+      summary: trimmedFileName.replaceAll('_', ' '),
+      issuer: 'Patient Upload',
     );
 
     _records.insert(0, record);
-
     return record;
   }
 
@@ -108,7 +168,7 @@ class PrescriptionMockDataSource {
     );
 
     if (index == -1) {
-      throw StateError('Prescription not found or access denied.');
+      throw StateError('Record not found or access denied.');
     }
 
     _records.removeAt(index);
@@ -141,5 +201,76 @@ class PrescriptionMockDataSource {
         'Unsupported file type. Only JPG, PNG, and PDF files are allowed.',
       );
     }
+  }
+
+  Uint8List _buildDemoPdf({
+    required String title,
+    required String summary,
+    required String issuer,
+  }) {
+    final safeTitle = _escapePdfText(title);
+    final safeSummary = _escapePdfText(summary);
+    final safeIssuer = _escapePdfText(issuer);
+
+    final content = [
+      'BT',
+      '/F1 22 Tf',
+      '50 760 Td',
+      '($safeTitle) Tj',
+      '0 -36 Td',
+      '/F1 14 Tf',
+      '($safeSummary) Tj',
+      '0 -24 Td',
+      '/F1 11 Tf',
+      '(Issued by: $safeIssuer) Tj',
+      '0 -22 Td',
+      '(Generated for the AsaanCare demo records module.) Tj',
+      'ET',
+    ].join('\n');
+
+    final objects = <String>[
+      '<< /Type /Catalog /Pages 2 0 R >>',
+      '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+      '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] '
+          '/Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>',
+      '<< /Length ${utf8.encode(content).length} >>\nstream\n$content\nendstream',
+      '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+    ];
+
+    final bytes = <int>[];
+    final offsets = <int>[0];
+
+    void addText(String value) {
+      bytes.addAll(utf8.encode(value));
+    }
+
+    addText('%PDF-1.4\n');
+
+    for (var index = 0; index < objects.length; index++) {
+      offsets.add(bytes.length);
+      addText('${index + 1} 0 obj\n${objects[index]}\nendobj\n');
+    }
+
+    final xrefOffset = bytes.length;
+    addText('xref\n0 ${objects.length + 1}\n');
+    addText('0000000000 65535 f \n');
+
+    for (final offset in offsets.skip(1)) {
+      addText('${offset.toString().padLeft(10, '0')} 00000 n \n');
+    }
+
+    addText(
+      'trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\n'
+      'startxref\n$xrefOffset\n%%EOF',
+    );
+
+    return Uint8List.fromList(bytes);
+  }
+
+  String _escapePdfText(String value) {
+    return value
+        .replaceAll(r'\', r'\\')
+        .replaceAll('(', r'\(')
+        .replaceAll(')', r'\)');
   }
 }

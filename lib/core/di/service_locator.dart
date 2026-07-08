@@ -118,10 +118,10 @@ Future<void> setupServiceLocator() async {
     () => GetRecentPrescription(sl<PharmacyRepository>()),
   );
 
-  sl.registerFactory<PharmacyController>(
+  sl.registerLazySingleton<PharmacyController>(
     () => PharmacyController(
-      getPopularMedicines: sl<GetPopularMedicines>(),
-      getRecentPrescription: sl<GetRecentPrescription>(),
+      sl<GetPopularMedicines>(),
+      sl<GetRecentPrescription>(),
     ),
   );
 
