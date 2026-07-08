@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../design/app_motion.dart';
 import '../theme/app_theme.dart';
 
 class AppBottomNavBar extends StatelessWidget {
@@ -14,14 +15,15 @@ class AppBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 104,
-      decoration: const BoxDecoration(
-        color: AppTheme.surface,
-        border: Border(top: BorderSide(color: AppTheme.border)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.only(top: 8, bottom: 22),
+    return SafeArea(
+      top: false,
+      child: Container(
+        height: 78,
+        decoration: const BoxDecoration(
+          color: AppTheme.surface,
+          border: Border(top: BorderSide(color: AppTheme.border)),
+        ),
+        padding: const EdgeInsets.fromLTRB(4, 7, 4, 6),
         child: Row(
           children: [
             _BottomNavItem(
@@ -79,35 +81,49 @@ class _BottomNavItem extends StatelessWidget {
     final color = selected ? AppTheme.primary : const Color(0xFF66727F);
 
     return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOutCubic,
-              height: 34,
-              width: selected ? 50 : 34,
-              decoration: BoxDecoration(
-                color: selected ? AppTheme.softTeal : Colors.transparent,
-                borderRadius: BorderRadius.circular(99),
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label: label,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedScale(
+                duration: AppMotion.press,
+                curve: AppMotion.standard,
+                scale: selected ? 1 : 0.94,
+                child: AnimatedContainer(
+                  duration: AppMotion.medium,
+                  curve: AppMotion.standard,
+                  height: 34,
+                  width: selected ? 50 : 34,
+                  decoration: BoxDecoration(
+                    color: selected ? AppTheme.softTeal : Colors.transparent,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: Icon(icon, color: color, size: 24),
+                ),
               ),
-              child: Icon(icon, color: color, size: 24),
-            ),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: color,
-                fontSize: 11,
-                fontWeight: selected ? FontWeight.w900 : FontWeight.w600,
+              const SizedBox(height: 3),
+              AnimatedDefaultTextStyle(
+                duration: AppMotion.fast,
+                curve: AppMotion.standard,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 11,
+                  fontWeight: selected ? FontWeight.w900 : FontWeight.w600,
+                ),
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

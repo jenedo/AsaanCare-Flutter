@@ -126,8 +126,7 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
                           itemCount: controller.popularMedicines.length,
-                          separatorBuilder: (_, _) =>
-                              const SizedBox(width: 12),
+                          separatorBuilder: (_, _) => const SizedBox(width: 12),
                           itemBuilder: (context, index) {
                             final medicine = controller.popularMedicines[index];
 
@@ -345,8 +344,8 @@ class _RecentPrescriptionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 100,
-      padding: const EdgeInsets.all(14),
+      constraints: const BoxConstraints(minHeight: 108),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFFF2FBFA),
         borderRadius: BorderRadius.circular(17),
@@ -354,10 +353,15 @@ class _RecentPrescriptionCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Image.asset(imageAsset, width: 54, fit: BoxFit.contain),
-          const SizedBox(width: 16),
+          SizedBox(
+            height: 58,
+            width: 58,
+            child: Image.asset(imageAsset, fit: BoxFit.contain),
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
@@ -384,46 +388,55 @@ class _RecentPrescriptionCard extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(width: 10),
           Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               if (isVerified)
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 7,
+                    horizontal: 10,
+                    vertical: 5,
                   ),
                   decoration: BoxDecoration(
                     color: AppTheme.softTeal,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(99),
                   ),
                   child: const Text(
                     'Verified',
                     style: TextStyle(
                       color: AppTheme.primary,
-                      fontSize: 13,
+                      fontSize: 11.5,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                 ),
-              const Spacer(),
-              GestureDetector(
-                onTap: onOrderAgainTap,
-                child: Container(
-                  height: 38,
-                  padding: const EdgeInsets.symmetric(horizontal: 18),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [AppTheme.primaryLight, AppTheme.primary],
+              const SizedBox(height: 8),
+              Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(99),
+                child: InkWell(
+                  onTap: onOrderAgainTap,
+                  borderRadius: BorderRadius.circular(99),
+                  child: Ink(
+                    height: 34,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [AppTheme.primaryLight, AppTheme.primary],
+                      ),
+                      borderRadius: BorderRadius.circular(99),
                     ),
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                  alignment: Alignment.center,
-                  child: const Text(
-                    'Order Again',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w900,
+                    child: const Center(
+                      child: Text(
+                        'Order Again',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
                     ),
                   ),
                 ),
