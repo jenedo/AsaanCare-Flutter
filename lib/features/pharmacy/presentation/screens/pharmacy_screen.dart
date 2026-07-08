@@ -490,75 +490,90 @@ class _HeroBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 202,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF006E73), Color(0xFF0A958B)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Stack(
-        children: [
-          const Positioned(
-            right: -8,
-            bottom: -2,
-            child: Icon(
-              Icons.shopping_basket_rounded,
-              color: Color(0x55FFFFFF),
-              size: 150,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 340;
+
+        return Container(
+          constraints: BoxConstraints(minHeight: compact ? 232 : 202),
+          padding: EdgeInsets.all(compact ? 16 : 20),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF006E73), Color(0xFF0A958B)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
+            borderRadius: BorderRadius.circular(22),
           ),
-          const Positioned(
-            right: 48,
-            top: 12,
-            child: Icon(
-              Icons.medication_rounded,
-              color: Color(0xAAFFFFFF),
-              size: 38,
-            ),
-          ),
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Stack(
             children: [
-              Text(
-                'Your Health,\nOur Priority',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 27,
-                  height: 1.08,
-                  fontWeight: FontWeight.w900,
+              const Positioned(
+                right: -8,
+                bottom: -2,
+                child: Icon(
+                  Icons.shopping_basket_rounded,
+                  color: Color(0x55FFFFFF),
+                  size: 150,
                 ),
               ),
-              SizedBox(height: 10),
-              Text(
-                'Order medicines from verified\npharmacy partners.',
-                style: TextStyle(
-                  color: Color(0xE6FFFFFF),
-                  fontSize: 14,
-                  height: 1.4,
+              const Positioned(
+                right: 40,
+                top: 10,
+                child: Icon(
+                  Icons.medication_rounded,
+                  color: Color(0xAAFFFFFF),
+                  size: 36,
                 ),
+              ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Your Health,\nOur Priority',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: compact ? 24 : 27,
+                      height: 1.08,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: compact
+                          ? constraints.maxWidth - 24
+                          : constraints.maxWidth * 0.72,
+                    ),
+                    child: const Text(
+                      'Order medicines from verified pharmacy partners.',
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Color(0xE6FFFFFF),
+                        fontSize: 14,
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  FilledButton.icon(
+                    onPressed: onOrderTap,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: AppTheme.primary,
+                    ),
+                    icon: const Icon(Icons.arrow_forward_rounded),
+                    label: const Text('Order Now'),
+                  ),
+                ],
               ),
             ],
           ),
-          Positioned(
-            left: 0,
-            bottom: 0,
-            child: FilledButton.icon(
-              onPressed: onOrderTap,
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: AppTheme.primary,
-              ),
-              icon: const Icon(Icons.arrow_forward_rounded),
-              label: const Text('Order Now'),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -597,7 +612,7 @@ class _QuickActions extends StatelessWidget {
             crossAxisCount: compact ? 2 : 4,
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
-            childAspectRatio: compact ? 1.5 : 0.82,
+            mainAxisExtent: compact ? 108 : 98,
           ),
           itemBuilder: (context, index) {
             final item = items[index];
@@ -874,7 +889,7 @@ class _NearbyPharmacyCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     const Text(
-                      'Open â€¢ 0.8 km â€¢ Rating 4.7',
+                      'Open • 0.8 km • Rating 4.7',
                       style: TextStyle(color: Color(0xFF657386)),
                     ),
                     const SizedBox(height: 3),

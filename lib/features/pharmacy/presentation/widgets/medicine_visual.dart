@@ -70,8 +70,8 @@ class MedicineVisual extends StatelessWidget {
                 angle: large ? -0.04 : -0.06,
                 child: Container(
                   width: large ? 205 : 94,
-                  height: large ? 132 : 66,
-                  padding: EdgeInsets.all(large ? 17 : 9),
+                  height: large ? 144 : 66,
+                  padding: EdgeInsets.all(large ? 14 : 9),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(large ? 18 : 11),
@@ -110,6 +110,7 @@ class MedicineVisual extends StatelessWidget {
                       SizedBox(width: large ? 12 : 6),
                       Expanded(
                         child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [

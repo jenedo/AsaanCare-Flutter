@@ -45,7 +45,13 @@ Future<void> _pumpAtSize(
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 700));
 
-  expect(tester.takeException(), isNull);
+  final exception = tester.takeException();
+
+  expect(
+    exception,
+    isNull,
+    reason: 'Overflow while rendering ${home.runtimeType} at ${size.width}px',
+  );
 }
 
 void main() {
@@ -53,7 +59,7 @@ void main() {
     tester,
   ) async {
     final controller = _createController();
-    await controller.load();
+    await tester.runAsync(controller.load);
 
     addTearDown(controller.dispose);
     addTearDown(tester.view.resetPhysicalSize);
@@ -70,7 +76,7 @@ void main() {
 
   testWidgets('search and medicine details render at 320px', (tester) async {
     final controller = _createController();
-    await controller.load();
+    await tester.runAsync(controller.load);
     final medicine = controller.medicines.firstWhere((item) => item.isInStock);
 
     addTearDown(controller.dispose);
@@ -85,16 +91,18 @@ void main() {
 
     expect(find.text('100 results found'), findsOneWidget);
 
-    await _pumpAtSize(
-      tester,
-      size: const Size(320, 800),
-      home: MedicineDetailScreen(controller: controller, medicine: medicine),
-    );
+    for (final width in <double>[320, 360, 393, 430]) {
+      await _pumpAtSize(
+        tester,
+        size: Size(width, 800),
+        home: MedicineDetailScreen(controller: controller, medicine: medicine),
+      );
+    }
   });
 
   testWidgets('cart and checkout render at 320px', (tester) async {
     final controller = _createController();
-    await controller.load();
+    await tester.runAsync(controller.load);
     final medicine = controller.medicines.firstWhere(
       (item) => item.isInStock && !item.prescriptionRequired,
     );
@@ -105,16 +113,18 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await _pumpAtSize(
-      tester,
-      size: const Size(320, 800),
-      home: CartScreen(controller: controller),
-    );
+    for (final width in <double>[320, 360, 393, 430]) {
+      await _pumpAtSize(
+        tester,
+        size: Size(width, 800),
+        home: CartScreen(controller: controller),
+      );
 
-    await _pumpAtSize(
-      tester,
-      size: const Size(320, 800),
-      home: CheckoutScreen(controller: controller),
-    );
+      await _pumpAtSize(
+        tester,
+        size: Size(width, 800),
+        home: CheckoutScreen(controller: controller),
+      );
+    }
   });
 }

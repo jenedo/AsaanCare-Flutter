@@ -78,14 +78,15 @@ class _MedicineDetailScreenState extends State<MedicineDetailScreen> {
       ),
       bottomNavigationBar: SafeArea(
         minimum: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-        child: Row(
-          children: [
-            Container(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final quantitySelector = Container(
               decoration: BoxDecoration(
                 border: Border.all(color: AppTheme.border),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
                     onPressed: _quantity > 1
@@ -103,32 +104,125 @@ class _MedicineDetailScreenState extends State<MedicineDetailScreen> {
                   ),
                 ],
               ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: FilledButton.icon(
-                onPressed: medicine.isInStock
-                    ? () {
-                        widget.controller.addToCart(
-                          medicine,
-                          quantity: _quantity,
-                        );
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              '$_quantity Ã— ${medicine.brandName} added.',
-                            ),
+            );
+
+            final addButton = FilledButton.icon(
+              onPressed: medicine.isInStock
+                  ? () {
+                      widget.controller.addToCart(
+                        medicine,
+                        quantity: _quantity,
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            '$_quantity × ${medicine.brandName} added.',
                           ),
-                        );
-                      }
-                    : null,
-                icon: const Icon(Icons.shopping_cart_rounded),
-                label: Text(
-                  medicine.isInStock ? 'Add to Cart' : 'Out of Stock',
-                ),
+                        ),
+                      );
+                    }
+                  : null,
+              icon: const Icon(Icons.shopping_cart_rounded),
+              label: Text(
+                medicine.isInStock ? 'Add to Cart' : 'Out of Stock',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
-          ],
+            );
+
+            if (constraints.maxWidth < 340) {
+              final compactQuantitySelector = Container(
+                height: 44,
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppTheme.border),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints.tightFor(
+                        width: 36,
+                        height: 36,
+                      ),
+                      padding: EdgeInsets.zero,
+                      onPressed: _quantity > 1
+                          ? () => setState(() => _quantity--)
+                          : null,
+                      icon: const Icon(Icons.remove_rounded, size: 19),
+                    ),
+                    SizedBox(
+                      width: 22,
+                      child: Text(
+                        '$_quantity',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints.tightFor(
+                        width: 36,
+                        height: 36,
+                      ),
+                      padding: EdgeInsets.zero,
+                      onPressed: () => setState(() => _quantity++),
+                      icon: const Icon(Icons.add_rounded, size: 19),
+                    ),
+                  ],
+                ),
+              );
+
+              return Row(
+                children: [
+                  compactQuantitySelector,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: SizedBox(
+                      height: 44,
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          minimumSize: Size.zero,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        onPressed: medicine.isInStock
+                            ? () {
+                                widget.controller.addToCart(
+                                  medicine,
+                                  quantity: _quantity,
+                                );
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      '$_quantity × ${medicine.brandName} added.',
+                                    ),
+                                  ),
+                                );
+                              }
+                            : null,
+                        child: Text(
+                          medicine.isInStock ? 'Add to Cart' : 'Out of Stock',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            return Row(
+              children: [
+                quantitySelector,
+                const SizedBox(width: 10),
+                Expanded(child: addButton),
+              ],
+            );
+          },
         ),
       ),
       body: SafeArea(
@@ -291,7 +385,7 @@ class _MedicineDetailScreenState extends State<MedicineDetailScreen> {
                   const _SectionTitle('Similar medicines'),
                   const SizedBox(height: 12),
                   SizedBox(
-                    height: 112,
+                    height: 122,
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemCount: similar.length,
@@ -332,7 +426,7 @@ class _MedicineDetailScreenState extends State<MedicineDetailScreen> {
                                       fontWeight: FontWeight.w900,
                                     ),
                                   ),
-                                  const Spacer(),
+                                  const SizedBox(height: 12),
                                   Text(
                                     'Rs. ${item.price}',
                                     style: const TextStyle(
@@ -397,7 +491,7 @@ class _InfoTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minHeight: 86),
+      constraints: const BoxConstraints(minHeight: 104),
       padding: const EdgeInsets.all(11),
       decoration: BoxDecoration(
         color: const Color(0xFFF7FAFA),

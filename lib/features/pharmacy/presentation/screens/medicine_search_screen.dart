@@ -140,7 +140,7 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
                   ),
                 ),
                 SizedBox(
-                  height: 48,
+                  height: 64,
                   child: ListView(
                     padding: EdgeInsets.symmetric(
                       horizontal: AppLayout.horizontalPadding(context),
@@ -175,52 +175,16 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
                     AppLayout.horizontalPadding(context),
                     8,
                   ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          '${results.length} results found',
-                          style: const TextStyle(
-                            color: Color(0xFF07132D),
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                      FilterChip(
-                        label: const Text('In stock'),
-                        selected: _onlyInStock,
-                        onSelected: (selected) {
-                          setState(() => _onlyInStock = selected);
-                        },
-                      ),
-                      PopupMenuButton<_MedicineSort>(
-                        tooltip: 'Sort',
-                        initialValue: _sort,
-                        onSelected: (value) {
-                          setState(() => _sort = value);
-                        },
-                        itemBuilder: (context) => const [
-                          PopupMenuItem(
-                            value: _MedicineSort.relevance,
-                            child: Text('Relevance'),
-                          ),
-                          PopupMenuItem(
-                            value: _MedicineSort.priceLow,
-                            child: Text('Price: low to high'),
-                          ),
-                          PopupMenuItem(
-                            value: _MedicineSort.priceHigh,
-                            child: Text('Price: high to low'),
-                          ),
-                          PopupMenuItem(
-                            value: _MedicineSort.rating,
-                            child: Text('Rating'),
-                          ),
-                        ],
-                        icon: const Icon(Icons.tune_rounded),
-                      ),
-                    ],
+                  child: _SearchToolbar(
+                    resultCount: results.length,
+                    onlyInStock: _onlyInStock,
+                    sort: _sort,
+                    onStockChanged: (selected) {
+                      setState(() => _onlyInStock = selected);
+                    },
+                    onSortChanged: (value) {
+                      setState(() => _sort = value);
+                    },
                   ),
                 ),
                 Expanded(
@@ -268,6 +232,89 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
   }
 }
 
+class _SearchToolbar extends StatelessWidget {
+  const _SearchToolbar({
+    required this.resultCount,
+    required this.onlyInStock,
+    required this.sort,
+    required this.onStockChanged,
+    required this.onSortChanged,
+  });
+
+  final int resultCount;
+  final bool onlyInStock;
+  final _MedicineSort sort;
+  final ValueChanged<bool> onStockChanged;
+  final ValueChanged<_MedicineSort> onSortChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final countLabel = Text(
+      '$resultCount results found',
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(
+        color: Color(0xFF07132D),
+        fontSize: 16,
+        fontWeight: FontWeight.w900,
+      ),
+    );
+
+    final stockFilter = FilterChip(
+      label: const Text('In stock'),
+      selected: onlyInStock,
+      onSelected: onStockChanged,
+    );
+
+    final sortButton = PopupMenuButton<_MedicineSort>(
+      tooltip: 'Sort',
+      initialValue: sort,
+      onSelected: onSortChanged,
+      itemBuilder: (context) => const [
+        PopupMenuItem(value: _MedicineSort.relevance, child: Text('Relevance')),
+        PopupMenuItem(
+          value: _MedicineSort.priceLow,
+          child: Text('Price: low to high'),
+        ),
+        PopupMenuItem(
+          value: _MedicineSort.priceHigh,
+          child: Text('Price: high to low'),
+        ),
+        PopupMenuItem(value: _MedicineSort.rating, child: Text('Rating')),
+      ],
+      icon: const Icon(Icons.tune_rounded),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 350) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(child: countLabel),
+                  sortButton,
+                ],
+              ),
+              Align(alignment: Alignment.centerLeft, child: stockFilter),
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(child: countLabel),
+            stockFilter,
+            sortButton,
+          ],
+        );
+      },
+    );
+  }
+}
+
 class _SearchResultCard extends StatelessWidget {
   const _SearchResultCard({
     required this.medicine,
@@ -297,122 +344,201 @@ class _SearchResultCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(17),
             border: Border.all(color: AppTheme.border),
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(width: 94, child: MedicineVisual(medicine: medicine)),
-              const SizedBox(width: 11),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 300;
+
+              if (compact) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (medicine.isOnSale)
-                      Text(
-                        '${medicine.discountPercent}% OFF',
-                        style: const TextStyle(
-                          color: AppTheme.danger,
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    Text(
-                      medicine.brandName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF07132D),
-                        fontSize: 15,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    Text(
-                      medicine.subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF657386),
-                        fontSize: 11,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      'Rs. ${medicine.price}',
-                      style: const TextStyle(
-                        color: Color(0xFF07132D),
-                        fontSize: 15.5,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(
-                          Icons.star_rounded,
-                          color: Color(0xFFFFB020),
-                          size: 15,
+                        SizedBox(
+                          width: 76,
+                          child: MedicineVisual(medicine: medicine),
                         ),
-                        Text(
-                          ' ${medicine.rating.toStringAsFixed(1)}',
-                          style: const TextStyle(fontSize: 11),
-                        ),
-                        const Spacer(),
-                        Text(
-                          medicine.isInStock ? 'In Stock' : 'Out of Stock',
-                          style: TextStyle(
-                            color: medicine.isInStock
-                                ? AppTheme.primary
-                                : AppTheme.danger,
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w800,
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _SearchResultInfo(
+                            medicine: medicine,
+                            compact: true,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 7),
-                    if (quantity == 0)
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton.icon(
-                          onPressed: medicine.isInStock ? onAdd : null,
-                          icon: const Icon(
-                            Icons.add_shopping_cart_rounded,
-                            size: 17,
-                          ),
-                          label: const Text('Add to Cart'),
-                        ),
-                      )
-                    else
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          IconButton(
-                            visualDensity: VisualDensity.compact,
-                            onPressed: onDecrease,
-                            icon: const Icon(
-                              Icons.remove_circle_outline_rounded,
-                            ),
-                          ),
-                          Text(
-                            '$quantity',
-                            style: const TextStyle(fontWeight: FontWeight.w900),
-                          ),
-                          IconButton(
-                            visualDensity: VisualDensity.compact,
-                            onPressed: onAdd,
-                            icon: const Icon(
-                              Icons.add_circle_rounded,
-                              color: AppTheme.primary,
-                            ),
-                          ),
-                        ],
-                      ),
+                    const SizedBox(height: 10),
+                    _SearchQuantityAction(
+                      medicine: medicine,
+                      quantity: quantity,
+                      onAdd: onAdd,
+                      onDecrease: onDecrease,
+                    ),
                   ],
-                ),
-              ),
-            ],
+                );
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 88,
+                    child: MedicineVisual(medicine: medicine),
+                  ),
+                  const SizedBox(width: 11),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _SearchResultInfo(medicine: medicine, compact: false),
+                        const SizedBox(height: 8),
+                        _SearchQuantityAction(
+                          medicine: medicine,
+                          quantity: quantity,
+                          onAdd: onAdd,
+                          onDecrease: onDecrease,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
+    );
+  }
+}
+
+class _SearchResultInfo extends StatelessWidget {
+  const _SearchResultInfo({required this.medicine, required this.compact});
+
+  final Medicine medicine;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (medicine.isOnSale)
+          Text(
+            '${medicine.discountPercent}% OFF',
+            style: const TextStyle(
+              color: AppTheme.danger,
+              fontSize: 9.5,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        Text(
+          medicine.brandName,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Color(0xFF07132D),
+            fontSize: 15,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        Text(
+          medicine.subtitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(color: Color(0xFF657386), fontSize: 11),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          'Rs. ${medicine.price}',
+          style: const TextStyle(
+            color: Color(0xFF07132D),
+            fontSize: 15.5,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Wrap(
+          spacing: 10,
+          runSpacing: 4,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.star_rounded,
+                  color: Color(0xFFFFB020),
+                  size: 15,
+                ),
+                Text(
+                  ' ${medicine.rating.toStringAsFixed(1)}',
+                  style: const TextStyle(fontSize: 11),
+                ),
+              ],
+            ),
+            Text(
+              medicine.isInStock ? 'In Stock' : 'Out of Stock',
+              style: TextStyle(
+                color: medicine.isInStock ? AppTheme.primary : AppTheme.danger,
+                fontSize: compact ? 10 : 10.5,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _SearchQuantityAction extends StatelessWidget {
+  const _SearchQuantityAction({
+    required this.medicine,
+    required this.quantity,
+    required this.onAdd,
+    required this.onDecrease,
+  });
+
+  final Medicine medicine;
+  final int quantity;
+  final VoidCallback onAdd;
+  final VoidCallback onDecrease;
+
+  @override
+  Widget build(BuildContext context) {
+    if (quantity == 0) {
+      return SizedBox(
+        width: double.infinity,
+        child: FilledButton.icon(
+          onPressed: medicine.isInStock ? onAdd : null,
+          style: FilledButton.styleFrom(
+            minimumSize: const Size.fromHeight(42),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          ),
+          icon: const Icon(Icons.add_shopping_cart_rounded, size: 17),
+          label: const Text('Add to Cart'),
+        ),
+      );
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        IconButton(
+          visualDensity: VisualDensity.compact,
+          onPressed: onDecrease,
+          icon: const Icon(Icons.remove_circle_outline_rounded),
+        ),
+        Text('$quantity', style: const TextStyle(fontWeight: FontWeight.w900)),
+        IconButton(
+          visualDensity: VisualDensity.compact,
+          onPressed: onAdd,
+          icon: const Icon(Icons.add_circle_rounded, color: AppTheme.primary),
+        ),
+      ],
     );
   }
 }
