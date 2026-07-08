@@ -1,6 +1,6 @@
 # Phase 1 Architecture Reconciliation
 
-**Repository scope:** Current tracked tree inspected on 2026-07-08.  
+**Repository scope:** Current tracked tree inspected on 2026-07-08.
 **Change scope:** Documentation only. No Dart source-code change is required for the inspected Security or Bugs concerns.
 
 ## Verification method
