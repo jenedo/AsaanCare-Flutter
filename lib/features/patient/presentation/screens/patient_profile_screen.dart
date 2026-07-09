@@ -179,9 +179,9 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                       icon: Icons.calendar_month_outlined,
                       title: 'My appointments',
                       subtitle: 'Upcoming and previous consultations',
-                      onTap: () => _showMessage(
-                        'Appointments list will be connected to the appointment repository.',
-                      ),
+                      onTap: () => Navigator.of(
+                        context,
+                      ).pushNamed(AppRoutes.appointments),
                     ),
                     ProfileSettingsTile(
                       icon: Icons.folder_copy_outlined,

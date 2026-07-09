@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../features/appointments/presentation/controllers/appointment_booking_controller.dart';
+import '../../features/appointments/presentation/controllers/appointment_list_controller.dart';
+import '../../features/appointments/presentation/screens/appointments_screen.dart';
 import '../../features/auth/presentation/controllers/auth_controller.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
@@ -23,6 +25,7 @@ class AppRouter {
   static const Set<String> _protectedRoutes = {
     AppRoutes.patientHome,
     AppRoutes.profile,
+    AppRoutes.appointments,
     AppRoutes.doctorDetail,
     AppRoutes.pharmacy,
     AppRoutes.medicalRecords,
@@ -78,6 +81,17 @@ class AppRouter {
         return _smoothRoute(
           settings: settings,
           child: PatientProfileScreen(authController: authController),
+        );
+
+      case AppRoutes.appointments:
+        return _smoothRoute(
+          settings: settings,
+          child: AppointmentsScreen(
+            controller: sl<AppointmentListController>(),
+            patientId:
+                authController.currentUser?.id ??
+                AppointmentBookingController.defaultPatientId,
+          ),
         );
 
       case AppRoutes.doctorDetail:
