@@ -4,6 +4,8 @@ import 'dart:collection';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 
+import '../../../../core/logging/app_logger.dart';
+
 import '../../domain/entities/prescription_record.dart';
 import '../../domain/usecases/delete_prescription.dart';
 import '../../domain/usecases/get_prescriptions.dart';
@@ -335,11 +337,7 @@ class PrescriptionController extends ChangeNotifier {
   }
 
   void _debugLog(String message, Object error, StackTrace stackTrace) {
-    if (!kDebugMode) return;
-
-    debugPrint('PrescriptionController: $message');
-    debugPrint('Error: $error');
-    debugPrintStack(stackTrace: stackTrace);
+    AppLogger.error('PrescriptionController.$message', error, stackTrace);
   }
 
   @override

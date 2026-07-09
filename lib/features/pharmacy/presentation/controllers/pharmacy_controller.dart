@@ -3,6 +3,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 
+import '../../../../core/logging/app_logger.dart';
+
 import '../../domain/entities/cart_item.dart';
 import '../../domain/entities/medicine.dart';
 import '../../domain/entities/pharmacy_order.dart';
@@ -146,10 +148,7 @@ class PharmacyController extends ChangeNotifier {
       _recentPrescription = results[1] as PrescriptionOrder;
       _setStatus(PharmacyStatus.loaded, null);
     } catch (error, stackTrace) {
-      if (kDebugMode) {
-        debugPrint('PharmacyController.load failed: $error');
-        debugPrintStack(stackTrace: stackTrace);
-      }
+      AppLogger.error('PharmacyController.load', error, stackTrace);
       _setStatus(
         PharmacyStatus.error,
         'Failed to load pharmacy data. Please try again.',
@@ -336,10 +335,7 @@ class PharmacyController extends ChangeNotifier {
       _cartQuantities.clear();
       return order;
     } catch (error, stackTrace) {
-      if (kDebugMode) {
-        debugPrint('PharmacyController.placeDemoOrder failed: $error');
-        debugPrintStack(stackTrace: stackTrace);
-      }
+      AppLogger.error('PharmacyController.placeDemoOrder', error, stackTrace);
       _errorMessage = 'Could not place the demo order.';
       return null;
     } finally {
