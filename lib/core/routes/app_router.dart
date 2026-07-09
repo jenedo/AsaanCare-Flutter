@@ -9,6 +9,7 @@ import '../../features/doctors/presentation/screens/doctor_detail_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/onboarding/presentation/welcome_screen.dart';
 import '../../features/patient/presentation/screens/patient_home_screen.dart';
+import '../../features/patient/presentation/screens/patient_profile_screen.dart';
 import '../../features/pharmacy/presentation/controllers/pharmacy_controller.dart';
 import '../../features/pharmacy/presentation/screens/pharmacy_screen.dart';
 import '../../features/prescriptions/presentation/controllers/prescription_controller.dart';
@@ -19,7 +20,25 @@ import 'app_routes.dart';
 class AppRouter {
   const AppRouter._();
 
+  static const Set<String> _protectedRoutes = {
+    AppRoutes.patientHome,
+    AppRoutes.profile,
+    AppRoutes.doctorDetail,
+    AppRoutes.pharmacy,
+    AppRoutes.medicalRecords,
+  };
+
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
+    final authController = sl<AuthController>();
+
+    if (_protectedRoutes.contains(settings.name) &&
+        !authController.isLoggedIn) {
+      return _smoothRoute(
+        settings: const RouteSettings(name: AppRoutes.login),
+        child: LoginScreen(authController: authController),
+      );
+    }
+
     switch (settings.name) {
       case AppRoutes.welcome:
         return _smoothRoute(settings: settings, child: const WelcomeScreen());
@@ -33,23 +52,45 @@ class AppRouter {
       case AppRoutes.register:
         return _smoothRoute(
           settings: settings,
-          child: RegisterScreen(authController: sl<AuthController>()),
+          child: RegisterScreen(authController: authController),
         );
 
       case AppRoutes.login:
+        if (authController.isLoggedIn) {
+          return _smoothRoute(
+            settings: const RouteSettings(name: AppRoutes.patientHome),
+            child: PatientHomeScreen(authController: authController),
+          );
+        }
+
         return _smoothRoute(
           settings: settings,
-          child: LoginScreen(authController: sl<AuthController>()),
+          child: LoginScreen(authController: authController),
         );
 
       case AppRoutes.patientHome:
         return _smoothRoute(
           settings: settings,
-          child: PatientHomeScreen(authController: sl<AuthController>()),
+          child: PatientHomeScreen(authController: authController),
+        );
+
+      case AppRoutes.profile:
+        return _smoothRoute(
+          settings: settings,
+          child: PatientProfileScreen(authController: authController),
         );
 
       case AppRoutes.doctorDetail:
         final doctorId = _readDoctorId(settings.arguments);
+
+        if (doctorId == null) {
+          return _smoothRoute(
+            settings: settings,
+            child: const _InvalidRouteArgumentsScreen(
+              message: 'A valid doctor id is required.',
+            ),
+          );
+        }
 
         return _smoothRoute(
           settings: settings,
@@ -67,7 +108,6 @@ class AppRouter {
         );
 
       case AppRoutes.medicalRecords:
-        final authController = sl<AuthController>();
         final patientId =
             authController.currentUser?.id ??
             PrescriptionController.mockPatientId;
@@ -88,12 +128,12 @@ class AppRouter {
     }
   }
 
-  static String _readDoctorId(Object? arguments) {
+  static String? _readDoctorId(Object? arguments) {
     if (arguments is String && arguments.trim().isNotEmpty) {
       return arguments.trim();
     }
 
-    return 'doctor_ali';
+    return null;
   }
 
   static PageRouteBuilder<dynamic> _smoothRoute({
@@ -102,8 +142,8 @@ class AppRouter {
   }) {
     return PageRouteBuilder<dynamic>(
       settings: settings,
-      transitionDuration: const Duration(milliseconds: 260),
-      reverseTransitionDuration: const Duration(milliseconds: 220),
+      transitionDuration: const Duration(milliseconds: 220),
+      reverseTransitionDuration: const Duration(milliseconds: 180),
       pageBuilder: (context, animation, secondaryAnimation) => child,
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         final curvedAnimation = CurvedAnimation(
@@ -112,7 +152,7 @@ class AppRouter {
         );
 
         final slideAnimation = Tween<Offset>(
-          begin: const Offset(0.04, 0),
+          begin: const Offset(0.025, 0),
           end: Offset.zero,
         ).animate(curvedAnimation);
 
@@ -121,6 +161,25 @@ class AppRouter {
           child: SlideTransition(position: slideAnimation, child: child),
         );
       },
+    );
+  }
+}
+
+class _InvalidRouteArgumentsScreen extends StatelessWidget {
+  const _InvalidRouteArgumentsScreen({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(message, textAlign: TextAlign.center),
+        ),
+      ),
     );
   }
 }

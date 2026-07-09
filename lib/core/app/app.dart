@@ -17,7 +17,9 @@ class AppScrollBehavior extends MaterialScrollBehavior {
 }
 
 class AsaanCareApp extends StatelessWidget {
-  const AsaanCareApp({super.key});
+  const AsaanCareApp({super.key, this.initialRoute = AppRoutes.welcome});
+
+  final String initialRoute;
 
   @override
   Widget build(BuildContext context) {
@@ -25,10 +27,8 @@ class AsaanCareApp extends StatelessWidget {
       title: 'AsaanCare',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme(),
-      initialRoute: AppRoutes.welcome,
+      initialRoute: initialRoute,
       onGenerateRoute: AppRouter.onGenerateRoute,
-
-      // Web par mouse drag se PageView/ListView scroll hoga.
       scrollBehavior: const AppScrollBehavior(),
     );
   }

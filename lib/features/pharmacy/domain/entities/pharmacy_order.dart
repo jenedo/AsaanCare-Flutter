@@ -83,6 +83,28 @@ class PharmacyOrder {
   final DateTime createdAt;
   final PharmacyOrderStage stage;
 
+  List<PharmacyOrderStage> get stagePath {
+    if (paymentMethod == PharmacyPaymentMethod.cashOnDelivery) {
+      return const [
+        PharmacyOrderStage.confirmed,
+        PharmacyOrderStage.accepted,
+        PharmacyOrderStage.preparing,
+        PharmacyOrderStage.packed,
+        PharmacyOrderStage.outForDelivery,
+        PharmacyOrderStage.delivered,
+      ];
+    }
+
+    return const [
+      PharmacyOrderStage.paymentSuccessful,
+      PharmacyOrderStage.accepted,
+      PharmacyOrderStage.preparing,
+      PharmacyOrderStage.packed,
+      PharmacyOrderStage.outForDelivery,
+      PharmacyOrderStage.delivered,
+    ];
+  }
+
   PharmacyOrder copyWith({PharmacyOrderStage? stage}) {
     return PharmacyOrder(
       id: id,

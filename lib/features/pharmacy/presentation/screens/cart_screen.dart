@@ -63,7 +63,7 @@ class _CartScreenState extends State<CartScreen> {
               child: FilledButton(
                 onPressed: _checkout,
                 child: Text(
-                  'Proceed to Checkout â€¢ Rs. ${widget.controller.payableTotal}',
+                  'Proceed to Checkout • Rs. ${widget.controller.payableTotal}',
                 ),
               ),
             ),

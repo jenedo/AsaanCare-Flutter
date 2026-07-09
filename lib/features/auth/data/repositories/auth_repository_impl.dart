@@ -1,15 +1,18 @@
+// Public named dependency parameters intentionally map to private fields.
+// ignore_for_file: prefer_initializing_formals
 import '../../domain/entities/auth_user.dart';
 import '../../domain/repositories/auth_repository.dart';
-import '../datasources/auth_mock_data_source.dart';
+import '../datasources/auth_data_source.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
-  const AuthRepositoryImpl({required this._mockDataSource});
+  const AuthRepositoryImpl({required AuthDataSource dataSource})
+    : _dataSource = dataSource;
 
-  final AuthMockDataSource _mockDataSource;
+  final AuthDataSource _dataSource;
 
   @override
   Future<AuthUser?> getCurrentUser() {
-    return _mockDataSource.getCurrentUser();
+    return _dataSource.getCurrentUser();
   }
 
   @override
@@ -17,10 +20,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String emailOrPhone,
     required String password,
   }) {
-    return _mockDataSource.login(
-      emailOrPhone: emailOrPhone,
-      password: password,
-    );
+    return _dataSource.login(emailOrPhone: emailOrPhone, password: password);
   }
 
   @override
@@ -29,7 +29,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String emailOrPhone,
     required String password,
   }) {
-    return _mockDataSource.registerPatient(
+    return _dataSource.registerPatient(
       fullName: fullName,
       emailOrPhone: emailOrPhone,
       password: password,
@@ -38,6 +38,6 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> logout() {
-    return _mockDataSource.logout();
+    return _dataSource.logout();
   }
 }

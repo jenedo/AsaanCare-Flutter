@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/layout/app_layout.dart';
 import '../../../../core/routes/app_routes.dart';
+import '../../../../core/utils/user_initials.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_bottom_nav_bar.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
@@ -19,7 +20,6 @@ class PatientHomeScreen extends StatefulWidget {
 class _PatientHomeScreenState extends State<PatientHomeScreen> {
   int _currentNavIndex = 0;
 
-  static const String _userAvatar = 'assets/images/user_avatar.png';
   static const String _bannerDoctor = 'assets/images/doctor_appointment.png';
   static const String _doctorSara = 'assets/images/doctor_sara.png';
   static const String _doctorAli = 'assets/images/doctor_ali.png';
@@ -95,18 +95,11 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
               ),
               children: [
                 _Header(
-                  avatarAsset: _userAvatar,
+                  userName:
+                      widget.authController.currentUser?.fullName ?? 'Patient',
                   onNotificationTap: () => _showComingSoon('Notifications'),
-                  onProfileLongPress: () async {
-                    await widget.authController.logout();
-
-                    if (!context.mounted) return;
-
-                    Navigator.of(context).pushNamedAndRemoveUntil(
-                      AppRoutes.login,
-                      (route) => false,
-                    );
-                  },
+                  onProfileTap: () =>
+                      Navigator.of(context).pushNamed(AppRoutes.profile),
                 ),
                 const SizedBox(height: 22),
                 _SearchBar(
@@ -212,25 +205,25 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
 
 class _Header extends StatelessWidget {
   const _Header({
-    required this.avatarAsset,
+    required this.userName,
     required this.onNotificationTap,
-    required this.onProfileLongPress,
+    required this.onProfileTap,
   });
 
-  final String avatarAsset;
+  final String userName;
   final VoidCallback onNotificationTap;
-  final VoidCallback onProfileLongPress;
+  final VoidCallback onProfileTap;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'Good morning,',
                 style: TextStyle(
                   color: Color(0xFF516071),
@@ -238,10 +231,12 @@ class _Header extends StatelessWidget {
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              SizedBox(height: 4),
+              const SizedBox(height: 4),
               Text(
-                'Ayesha',
-                style: TextStyle(
+                userName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
                   color: Color(0xFF07132D),
                   fontSize: 34,
                   fontWeight: FontWeight.w900,
@@ -277,12 +272,24 @@ class _Header extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 20),
-        GestureDetector(
-          onLongPress: onProfileLongPress,
-          child: CircleAvatar(
-            radius: 29,
-            backgroundColor: AppTheme.softTeal,
-            backgroundImage: AssetImage(avatarAsset),
+        Semantics(
+          button: true,
+          label: 'Open profile and settings',
+          child: InkWell(
+            onTap: onProfileTap,
+            borderRadius: BorderRadius.circular(40),
+            child: CircleAvatar(
+              radius: 29,
+              backgroundColor: AppTheme.softTeal,
+              child: Text(
+                UserInitials.fromName(userName),
+                style: const TextStyle(
+                  color: AppTheme.primary,
+                  fontSize: 19,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
           ),
         ),
       ],

@@ -1,3 +1,5 @@
+// Public named dependency parameters intentionally map to private fields.
+// ignore_for_file: prefer_initializing_formals
 import 'dart:collection';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
@@ -11,10 +13,12 @@ enum PrescriptionControllerStatus { initial, loading, loaded, empty, error }
 
 class PrescriptionController extends ChangeNotifier {
   PrescriptionController({
-    required this._getPrescriptions,
-    required this._uploadPrescription,
-    required this._deletePrescription,
-  });
+    required GetPrescriptions getPrescriptions,
+    required UploadPrescription uploadPrescription,
+    required DeletePrescription deletePrescription,
+  }) : _getPrescriptions = getPrescriptions,
+       _uploadPrescription = uploadPrescription,
+       _deletePrescription = deletePrescription;
 
   static const String mockPatientId = 'mock_patient_001';
   static const int maxFileSizeBytes = 5 * 1024 * 1024;

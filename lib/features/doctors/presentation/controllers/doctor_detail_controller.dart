@@ -1,10 +1,14 @@
+// Public named dependency parameters intentionally map to private fields.
+// ignore_for_file: prefer_initializing_formals
 import 'package:flutter/foundation.dart';
 
+import '../../../../core/logging/app_logger.dart';
 import '../../domain/entities/doctor.dart';
 import '../../domain/usecases/get_doctor_detail.dart';
 
 class DoctorDetailController extends ChangeNotifier {
-  DoctorDetailController({required this._getDoctorDetail});
+  DoctorDetailController({required GetDoctorDetail getDoctorDetail})
+    : _getDoctorDetail = getDoctorDetail;
 
   final GetDoctorDetail _getDoctorDetail;
 
@@ -26,7 +30,8 @@ class DoctorDetailController extends ChangeNotifier {
     try {
       _doctor = await _getDoctorDetail(doctorId);
       _errorMessage = null;
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error('DoctorDetailController.loadDoctor', error, stackTrace);
       _errorMessage = 'Failed to load doctor profile.';
     } finally {
       _setLoading(false);

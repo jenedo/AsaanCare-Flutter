@@ -145,7 +145,9 @@ void main() {
     controller.addToCart(medicine);
     controller.selectPaymentMethod(PharmacyPaymentMethod.cashOnDelivery);
 
-    final order = await controller.placeDemoOrder();
+    final order = await controller.placeDemoOrder(
+      patientId: 'mock_patient_001',
+    );
 
     expect(order, isNotNull);
     expect(order!.items, isNotEmpty);
@@ -163,7 +165,9 @@ void main() {
 
       controller.addToCart(medicine);
 
-      final order = await controller.placeDemoOrder();
+      final order = await controller.placeDemoOrder(
+        patientId: 'mock_patient_001',
+      );
       expect(order, isNotNull);
 
       final initialStage = controller.activeOrder!.stage;

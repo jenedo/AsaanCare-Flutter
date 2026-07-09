@@ -117,13 +117,13 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                       const SizedBox(height: 22),
                       for (
                         var index = 0;
-                        index < PharmacyOrderStage.values.length;
+                        index < order.stagePath.length;
                         index++
                       )
                         _TimelineItem(
-                          stage: PharmacyOrderStage.values[index],
+                          stage: order.stagePath[index],
                           currentStage: order.stage,
-                          isLast: index == PharmacyOrderStage.values.length - 1,
+                          isLast: index == order.stagePath.length - 1,
                         ),
                       const SizedBox(height: 20),
                       _OrderPharmacyCard(order: order),
@@ -269,7 +269,7 @@ class _OrderPharmacyCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${order.items.length} products â€¢ Rs. ${order.total}',
+                  '${order.items.length} products • Rs. ${order.total}',
                   style: const TextStyle(color: Color(0xFF657386)),
                 ),
               ],
@@ -277,7 +277,15 @@ class _OrderPharmacyCard extends StatelessWidget {
           ),
           IconButton(
             tooltip: 'Call pharmacy',
-            onPressed: () {},
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Calling a pharmacy requires the verified contact API.',
+                  ),
+                ),
+              );
+            },
             icon: const Icon(Icons.call_outlined),
           ),
         ],

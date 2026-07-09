@@ -78,7 +78,7 @@ class Medicine {
     return (((originalPrice - price) / originalPrice) * 100).round();
   }
 
-  String get subtitle => '$strength â€¢ $dosageForm';
+  String get subtitle => '$strength • $dosageForm';
 
   String get searchableText {
     return [

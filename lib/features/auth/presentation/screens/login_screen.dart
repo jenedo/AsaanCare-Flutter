@@ -127,7 +127,19 @@ class _LoginScreenState extends State<LoginScreen> {
                           Align(
                             alignment: Alignment.centerRight,
                             child: TextButton(
-                              onPressed: isLoading ? null : () {},
+                              onPressed: isLoading
+                                  ? null
+                                  : () {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Password reset requires the backend email/OTP endpoint.',
+                                          ),
+                                        ),
+                                      );
+                                    },
                               child: const Text('Forgot password?'),
                             ),
                           ),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/di/service_locator.dart';
 import '../../../../core/layout/app_layout.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../domain/entities/pharmacy_order.dart';
 import '../controllers/pharmacy_controller.dart';
 import 'order_tracking_screen.dart';
@@ -82,7 +84,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       return;
     }
 
-    final order = await widget.controller.placeDemoOrder();
+    final patientId = sl<AuthController>().currentUser?.id.trim();
+
+    if (patientId == null || patientId.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Your session expired. Please login again.'),
+        ),
+      );
+      return;
+    }
+
+    final order = await widget.controller.placeDemoOrder(patientId: patientId);
 
     if (!mounted) return;
 
@@ -132,7 +146,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           label: Text(
             controller.isPlacingOrder
                 ? 'Placing order...'
-                : 'Place Demo Order â€¢ Rs. ${controller.payableTotal}',
+                : 'Place Demo Order • Rs. ${controller.payableTotal}',
           ),
         ),
       ),
@@ -166,7 +180,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 _InformationCard(
                   icon: Icons.local_pharmacy_outlined,
                   title: controller.selectedPharmacy,
-                  subtitle: '4.7 â˜… â€¢ Approximately 30 min',
+                  subtitle: '4.7 ★ • Approximately 30 min',
                   actionText: 'Change',
                   onAction: () {
                     controller.selectPharmacy(

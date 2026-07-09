@@ -1,12 +1,16 @@
+// Public named dependency parameters intentionally map to private fields.
+// ignore_for_file: prefer_initializing_formals
 import 'package:flutter/foundation.dart';
 
+import '../../../../core/logging/app_logger.dart';
 import '../../data/datasources/appointment_mock_data_source.dart';
 import '../../domain/entities/appointment_slot.dart';
 import '../../domain/entities/consultation_type.dart';
 import '../../domain/usecases/book_appointment.dart';
 
 class AppointmentBookingController extends ChangeNotifier {
-  AppointmentBookingController({required this._bookAppointment});
+  AppointmentBookingController({required BookAppointment bookAppointment})
+    : _bookAppointment = bookAppointment;
 
   final BookAppointment _bookAppointment;
 
@@ -76,7 +80,8 @@ class AppointmentBookingController extends ChangeNotifier {
     } on AppointmentDataException catch (error) {
       _errorMessage = error.message;
       return false;
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error('AppointmentBookingController.book', error, stackTrace);
       _errorMessage = 'Booking failed. Try again.';
       return false;
     } finally {

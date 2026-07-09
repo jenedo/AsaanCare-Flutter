@@ -4,6 +4,9 @@ import 'package:flutter/services.dart';
 
 import 'core/app/app.dart';
 import 'core/di/service_locator.dart';
+import 'core/logging/app_logger.dart';
+import 'core/routes/app_routes.dart';
+import 'features/auth/presentation/controllers/auth_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,7 +16,45 @@ Future<void> main() async {
     await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   }
 
-  await setupServiceLocator();
+  try {
+    await setupServiceLocator();
 
-  runApp(const AsaanCareApp());
+    final authController = sl<AuthController>();
+    await authController.loadCurrentUser();
+
+    runApp(
+      AsaanCareApp(
+        initialRoute: authController.isLoggedIn
+            ? AppRoutes.patientHome
+            : AppRoutes.welcome,
+      ),
+    );
+  } catch (error, stackTrace) {
+    AppLogger.error('main.startup', error, stackTrace);
+    runApp(const _StartupFailureApp());
+  }
+}
+
+class _StartupFailureApp extends StatelessWidget {
+  const _StartupFailureApp();
+
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Text(
+                'AsaanCare could not start. Check the app configuration and try again.',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

@@ -672,7 +672,7 @@ class _RecordCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 7),
                     Text(
-                      '${record.summary} â€¢ ${_formatDate(record.uploadedAt)}',
+                      '${record.summary} • ${_formatDate(record.uploadedAt)}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(

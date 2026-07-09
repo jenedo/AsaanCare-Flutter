@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/layout/app_layout.dart';
@@ -53,6 +55,14 @@ class _MedicineDetailScreenState extends State<MedicineDetailScreen> {
     final medicine = widget.medicine;
     final favorite = widget.controller.isFavorite(medicine.id);
     final similar = widget.controller.similarMedicines(medicine);
+    final maxQuantity = math.min(
+      PharmacyController.maxQuantityPerMedicine,
+      medicine.stockQuantity,
+    );
+
+    if (_quantity > maxQuantity && maxQuantity > 0) {
+      _quantity = maxQuantity;
+    }
 
     return Scaffold(
       backgroundColor: AppTheme.surface,
@@ -99,7 +109,9 @@ class _MedicineDetailScreenState extends State<MedicineDetailScreen> {
                     style: const TextStyle(fontWeight: FontWeight.w900),
                   ),
                   IconButton(
-                    onPressed: () => setState(() => _quantity++),
+                    onPressed: _quantity < maxQuantity
+                        ? () => setState(() => _quantity++)
+                        : null,
                     icon: const Icon(Icons.add_rounded),
                   ),
                 ],
@@ -167,7 +179,9 @@ class _MedicineDetailScreenState extends State<MedicineDetailScreen> {
                         height: 36,
                       ),
                       padding: EdgeInsets.zero,
-                      onPressed: () => setState(() => _quantity++),
+                      onPressed: _quantity < maxQuantity
+                          ? () => setState(() => _quantity++)
+                          : null,
                       icon: const Icon(Icons.add_rounded, size: 19),
                     ),
                   ],

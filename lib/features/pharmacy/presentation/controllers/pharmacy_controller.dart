@@ -205,7 +205,11 @@ class PharmacyController extends ChangeNotifier {
     final maximum = math.min(maxQuantityPerMedicine, medicine.stockQuantity);
     final next = math.min(current + quantity, maximum);
 
-    if (next == current) return;
+    if (next == current) {
+      _errorMessage = 'Maximum quantity reached for ${medicine.brandName}.';
+      notifyListeners();
+      return;
+    }
 
     _cartQuantities[medicine.id] = next;
     _errorMessage = null;
@@ -243,8 +247,20 @@ class PharmacyController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void clearCart() {
+  void clearCart({bool resetSession = false}) {
     _cartQuantities.clear();
+
+    if (resetSession) {
+      _favoriteIds.clear();
+      _activeOrder = null;
+      _paymentMethod = PharmacyPaymentMethod.cashOnDelivery;
+      _deliveryAddress = '123, Model Town, Block B, Lahore, Punjab 54000';
+      _selectedPharmacy = 'MediPlus Pharmacy';
+      _selectedCity = 'Lahore';
+      _errorMessage = null;
+      _isPlacingOrder = false;
+    }
+
     notifyListeners();
   }
 
@@ -274,10 +290,15 @@ class PharmacyController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<PharmacyOrder?> placeDemoOrder({
-    String patientId = 'mock_patient_001',
-  }) async {
+  Future<PharmacyOrder?> placeDemoOrder({required String patientId}) async {
     if (_isPlacingOrder) return null;
+
+    final cleanPatientId = patientId.trim();
+    if (cleanPatientId.isEmpty) {
+      _errorMessage = 'Your session is missing. Please login again.';
+      notifyListeners();
+      return null;
+    }
 
     final validationError = checkoutValidationError;
 
@@ -296,7 +317,7 @@ class PharmacyController extends ChangeNotifier {
 
       final order = PharmacyOrder(
         id: 'AC${DateTime.now().millisecondsSinceEpoch}',
-        patientId: patientId,
+        patientId: cleanPatientId,
         items: List<CartItem>.unmodifiable(cartItems),
         deliveryAddress: _deliveryAddress,
         pharmacyName: _selectedPharmacy,
@@ -331,10 +352,10 @@ class PharmacyController extends ChangeNotifier {
     final order = _activeOrder;
     if (order == null) return;
 
-    final stages = PharmacyOrderStage.values;
+    final stages = order.stagePath;
     final current = stages.indexOf(order.stage);
 
-    if (current >= stages.length - 1) return;
+    if (current == -1 || current >= stages.length - 1) return;
 
     _activeOrder = order.copyWith(stage: stages[current + 1]);
     notifyListeners();
