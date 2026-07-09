@@ -10,11 +10,13 @@ import '../controllers/doctor_detail_controller.dart';
 class DoctorDetailScreen extends StatefulWidget {
   const DoctorDetailScreen({
     super.key,
+    this.patientId = AppointmentBookingController.defaultPatientId,
     required this.doctorId,
     required this.doctorDetailController,
     required this.bookingController,
   });
 
+  final String patientId;
   final String doctorId;
   final DoctorDetailController doctorDetailController;
   final AppointmentBookingController bookingController;
@@ -49,6 +51,7 @@ class _DoctorDetailScreenState extends State<DoctorDetailScreen> {
 
   Future<void> _bookAppointment(Doctor doctor) async {
     final success = await widget.bookingController.book(
+      patientId: widget.patientId,
       doctorId: doctor.id,
       totalFee: doctor.consultationFee,
     );

@@ -5,7 +5,9 @@ import '../../features/appointments/data/datasources/appointment_mock_data_sourc
 import '../../features/appointments/data/repositories/appointment_repository_impl.dart';
 import '../../features/appointments/domain/repositories/appointment_repository.dart';
 import '../../features/appointments/domain/usecases/book_appointment.dart';
+import '../../features/appointments/domain/usecases/get_appointments.dart';
 import '../../features/appointments/presentation/controllers/appointment_booking_controller.dart';
+import '../../features/appointments/presentation/controllers/appointment_list_controller.dart';
 import '../../features/auth/data/datasources/auth_data_source.dart';
 import '../../features/auth/data/datasources/auth_mock_data_source.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
@@ -103,8 +105,14 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<BookAppointment>(
     () => BookAppointment(sl<AppointmentRepository>()),
   );
+  sl.registerLazySingleton<GetAppointments>(
+    () => GetAppointments(sl<AppointmentRepository>()),
+  );
   sl.registerFactory<AppointmentBookingController>(
     () => AppointmentBookingController(bookAppointment: sl<BookAppointment>()),
+  );
+  sl.registerFactory<AppointmentListController>(
+    () => AppointmentListController(getAppointments: sl<GetAppointments>()),
   );
 
   // Pharmacy. Keep as a lazy singleton so the cart persists while logged in.

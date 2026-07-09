@@ -95,6 +95,9 @@ class AppRouter {
         return _smoothRoute(
           settings: settings,
           child: DoctorDetailScreen(
+            patientId:
+                authController.currentUser?.id ??
+                AppointmentBookingController.defaultPatientId,
             doctorId: doctorId,
             doctorDetailController: sl<DoctorDetailController>(),
             bookingController: sl<AppointmentBookingController>(),

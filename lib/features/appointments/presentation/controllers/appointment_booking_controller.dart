@@ -1,16 +1,19 @@
 // Public named dependency parameters intentionally map to private fields.
 // ignore_for_file: prefer_initializing_formals
+
 import 'package:flutter/foundation.dart';
 
 import '../../../../core/logging/app_logger.dart';
-import '../../data/datasources/appointment_mock_data_source.dart';
 import '../../domain/entities/appointment_slot.dart';
 import '../../domain/entities/consultation_type.dart';
+import '../../domain/exceptions/appointment_exception.dart';
 import '../../domain/usecases/book_appointment.dart';
 
 class AppointmentBookingController extends ChangeNotifier {
   AppointmentBookingController({required BookAppointment bookAppointment})
     : _bookAppointment = bookAppointment;
+
+  static const String defaultPatientId = BookAppointment.defaultMockPatientId;
 
   final BookAppointment _bookAppointment;
 
@@ -40,6 +43,7 @@ class AppointmentBookingController extends ChangeNotifier {
   String? _errorMessage;
 
   ConsultationType get selectedConsultationType => _selectedConsultationType;
+
   int get selectedDateIndex => _selectedDateIndex;
   int get selectedTimeIndex => _selectedTimeIndex;
   bool get isBooking => _isBooking;
@@ -63,11 +67,16 @@ class AppointmentBookingController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> book({required String doctorId, required int totalFee}) async {
+  Future<bool> book({
+    String patientId = defaultPatientId,
+    required String doctorId,
+    required int totalFee,
+  }) async {
     _setBooking(true);
 
     try {
       await _bookAppointment(
+        patientId: patientId,
         doctorId: doctorId,
         consultationType: _selectedConsultationType,
         dateLabel: selectedDate.label,
@@ -77,7 +86,7 @@ class AppointmentBookingController extends ChangeNotifier {
 
       _errorMessage = null;
       return true;
-    } on AppointmentDataException catch (error) {
+    } on AppointmentException catch (error) {
       _errorMessage = error.message;
       return false;
     } catch (error, stackTrace) {
