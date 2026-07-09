@@ -63,7 +63,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         return;
 
       case 4:
-        _showComingSoon('Wallet');
+        Navigator.of(context).pushNamed(AppRoutes.wallet);
         return;
 
       default:

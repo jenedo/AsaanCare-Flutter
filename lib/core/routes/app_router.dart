@@ -16,6 +16,8 @@ import '../../features/pharmacy/presentation/controllers/pharmacy_controller.dar
 import '../../features/pharmacy/presentation/screens/pharmacy_screen.dart';
 import '../../features/prescriptions/presentation/controllers/prescription_controller.dart';
 import '../../features/prescriptions/presentation/screens/medical_records_screen.dart';
+import '../../features/wallet/presentation/controllers/wallet_controller.dart';
+import '../../features/wallet/presentation/screens/wallet_screen.dart';
 import '../di/service_locator.dart';
 import 'app_routes.dart';
 
@@ -29,6 +31,7 @@ class AppRouter {
     AppRoutes.doctorDetail,
     AppRoutes.pharmacy,
     AppRoutes.medicalRecords,
+    AppRoutes.wallet,
   };
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
@@ -134,6 +137,17 @@ class AppRouter {
           child: MedicalRecordsScreen(
             controller: sl<PrescriptionController>(),
             patientId: patientId,
+          ),
+        );
+
+      case AppRoutes.wallet:
+        return _smoothRoute(
+          settings: settings,
+          child: WalletScreen(
+            controller: sl<WalletController>(),
+            patientId:
+                authController.currentUser?.id ??
+                PrescriptionController.mockPatientId,
           ),
         );
 

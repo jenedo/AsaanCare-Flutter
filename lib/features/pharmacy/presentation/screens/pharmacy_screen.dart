@@ -102,7 +102,7 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
         Navigator.of(context).pushNamed(AppRoutes.medicalRecords);
         return;
       case 4:
-        _showMessage('Profile and wallet modules are scheduled next.');
+        Navigator.of(context).pushReplacementNamed(AppRoutes.wallet);
         return;
     }
   }

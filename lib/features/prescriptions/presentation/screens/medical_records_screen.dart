@@ -304,7 +304,7 @@ class _MedicalRecordsScreenState extends State<MedicalRecordsScreen> {
       case 3:
         return;
       case 4:
-        _showSnackBar('Wallet will be connected in the payments phase.');
+        Navigator.of(context).pushReplacementNamed(AppRoutes.wallet);
         return;
       default:
         return;
