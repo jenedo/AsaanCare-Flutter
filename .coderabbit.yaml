@@ -1,0 +1,89 @@
+language: "en-US"
+early_access: true
+
+reviews:
+  profile: "assertive"
+  request_changes_workflow: true
+  high_level_summary: true
+  poem: false
+  collapse_walkthrough: false
+  auto_review:
+    enabled: true
+    drafts: false
+
+  path_filters:
+    - "!build/**"
+    - "!.dart_tool/**"
+    - "!android/**"
+    - "!ios/**"
+    - "!windows/**"
+    - "!linux/**"
+    - "!macos/**"
+    - "!web/**"
+    - "!**/*.g.dart"
+    - "!**/*.freezed.dart"
+    - "!docs/**"
+
+  path_instructions:
+    - path: "lib/features/**/presentation/screens/**"
+      instructions: |
+        - Flag any file over 500 lines mixing widget tree, business logic, and repository/
+          controller calls directly — suggest extracting into lib/features/<feature>/presentation/widgets/.
+        - Flag any `catch (_) {}` or empty catch block with no logging and no user-facing feedback.
+        - Flag missing `mounted`/`context.mounted` checks after any `await` followed by
+          `context`, `Navigator`, or `ScaffoldMessenger` usage.
+        - Flag icon-only IconButtons with no `tooltip` or `Semantics` label.
+        - Flag any runtime-constructed `IconData(codePoint: ...)` — breaks icon tree-shaking.
+        - Flag any ChangeNotifier controller registered as a singleton (registerLazySingleton)
+          whose mutable state (cart, form drafts, filters) isn't explicitly cleared on logout —
+          check against lib/core/di/service_locator.dart and the logout flow in
+          lib/features/auth/presentation/controllers/auth_controller.dart.
+
+    - path: "lib/features/**/data/repositories/**"
+      instructions: |
+        - Confirm each repository implementation correctly fulfills its domain/repositories
+          interface contract with no silently-swallowed exceptions.
+        - Flag any data source call (mock or real) with no error handling path back to the
+          controller/UI layer.
+
+    - path: "lib/features/**/domain/repositories/**"
+      instructions: |
+        - Confirm interfaces stay free of any implementation detail (no Flutter widget imports,
+          no direct storage/SDK references) — this layer should only define contracts.
+
+    - path: "lib/features/**/presentation/controllers/**"
+      instructions: |
+        - Flag `catch (_)` or any catch block that doesn't capture `(error, stackTrace)` and log it.
+        - Confirm error/loading/success state transitions always eventually resolve (no path that
+          leaves `isLoading`/`isPlacingOrder`-style flags stuck true after an exception — check
+          `finally` blocks are present where needed).
+        - For any singleton-registered controller, flag missing reset/clear logic tied to logout.
+
+    - path: "lib/core/routes/app_router.dart"
+      instructions: |
+        - Confirm every route argument is null-safety validated with a safe fallback before use.
+        - Flag any fallback to mock/demo data (e.g. a mock patient ID) that could mask a real
+          null-user or auth-state bug in production — suggest an explicit error/redirect-to-login
+          path instead of a silent mock substitution where appropriate.
+        - Flag any debug-only or test screen reachable from a route with no kDebugMode or
+          build-flavor guard.
+
+    - path: "lib/core/di/service_locator.dart"
+      instructions: |
+        - Flag any change from registerFactory to registerLazySingleton (or vice versa) for a
+          controller holding user-specific mutable state, and confirm the corresponding logout/
+          reset flow handles clearing it.
+        - Confirm registrations don't create circular dependencies.
+
+    - path: "android/app/build.gradle.kts"
+      instructions: |
+        - Confirm `keyPassword`/`storePassword` are read from `keystoreProperties` / environment,
+          never hardcoded literal values.
+
+  labeling_instructions:
+    - label: "security"
+      instructions: "Apply when a finding involves auth, tokens, secrets, or cross-user data leakage (e.g. singleton state not cleared on logout)."
+    - label: "perf"
+      instructions: "Apply when a finding involves repeated decode/rebuild work or unbounded in-memory state."
+    - label: "architecture"
+      instructions: "Apply when a finding involves DI registration lifetime, controller/repository boundary violations, or file-size/responsibility issues."
