@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/routes/app_routes.dart';
-import '../../../../core/utils/user_initials.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
+
+import '../widgets/patient_profile_widgets.dart';
 
 class PatientProfileScreen extends StatefulWidget {
   const PatientProfileScreen({super.key, required this.authController});
@@ -81,11 +82,14 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _DialogField(label: 'Full name', value: user.fullName),
+              ProfileDialogField(label: 'Full name', value: user.fullName),
               const SizedBox(height: 14),
-              _DialogField(label: 'Email or phone', value: user.emailOrPhone),
+              ProfileDialogField(
+                label: 'Email or phone',
+                value: user.emailOrPhone,
+              ),
               const SizedBox(height: 14),
-              _DialogField(label: 'Account type', value: 'Patient'),
+              ProfileDialogField(label: 'Account type', value: 'Patient'),
             ],
           ),
           actions: [
@@ -156,22 +160,22 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
               children: [
-                _ProfileHeader(
+                PatientProfileHeader(
                   fullName: user.fullName,
                   identity: user.emailOrPhone,
                 ),
                 const SizedBox(height: 20),
-                const _SectionTitle('Account'),
+                const ProfileSectionTitle('Account'),
                 const SizedBox(height: 8),
-                _SettingsCard(
+                ProfileSettingsCard(
                   children: [
-                    _SettingsTile(
+                    ProfileSettingsTile(
                       icon: Icons.person_outline_rounded,
                       title: 'Personal information',
                       subtitle: 'Name, email or phone, account type',
                       onTap: _showAccountDetails,
                     ),
-                    _SettingsTile(
+                    ProfileSettingsTile(
                       icon: Icons.calendar_month_outlined,
                       title: 'My appointments',
                       subtitle: 'Upcoming and previous consultations',
@@ -179,7 +183,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                         'Appointments list will be connected to the appointment repository.',
                       ),
                     ),
-                    _SettingsTile(
+                    ProfileSettingsTile(
                       icon: Icons.folder_copy_outlined,
                       title: 'Medical records',
                       subtitle: 'Prescriptions and uploaded documents',
@@ -190,9 +194,9 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                   ],
                 ),
                 const SizedBox(height: 20),
-                const _SectionTitle('Settings'),
+                const ProfileSectionTitle('Settings'),
                 const SizedBox(height: 8),
-                _SettingsCard(
+                ProfileSettingsCard(
                   children: [
                     SwitchListTile.adaptive(
                       secondary: const Icon(Icons.notifications_outlined),
@@ -210,13 +214,13 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                         setState(() => _notificationsEnabled = value);
                       },
                     ),
-                    _SettingsTile(
+                    ProfileSettingsTile(
                       icon: Icons.language_outlined,
                       title: 'Language',
                       subtitle: _language,
                       onTap: _selectLanguage,
                     ),
-                    _SettingsTile(
+                    ProfileSettingsTile(
                       icon: Icons.lock_outline_rounded,
                       title: 'Password & security',
                       subtitle: 'Password reset and active sessions',
@@ -224,7 +228,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
                         'Password reset requires the backend email or OTP endpoint.',
                       ),
                     ),
-                    _SettingsTile(
+                    ProfileSettingsTile(
                       icon: Icons.privacy_tip_outlined,
                       title: 'Privacy & support',
                       subtitle: 'Privacy controls and help',
@@ -270,151 +274,6 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
           ),
         );
       },
-    );
-  }
-}
-
-class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader({required this.fullName, required this.identity});
-
-  final String fullName;
-  final String identity;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 36,
-              backgroundColor: const Color(0xFFD7F1EC),
-              child: Text(
-                UserInitials.fromName(fullName),
-                style: const TextStyle(
-                  color: Color(0xFF00796F),
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    fullName,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    identity,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Color(0xFF667085)),
-                  ),
-                  const SizedBox(height: 5),
-                  const Text(
-                    'Patient account',
-                    style: TextStyle(
-                      color: Color(0xFF00796F),
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.title);
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-    );
-  }
-}
-
-class _SettingsCard extends StatelessWidget {
-  const _SettingsCard({required this.children});
-
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      clipBehavior: Clip.antiAlias,
-      child: Column(children: children),
-    );
-  }
-}
-
-class _SettingsTile extends StatelessWidget {
-  const _SettingsTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(icon),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-      subtitle: Text(subtitle),
-      trailing: const Icon(Icons.chevron_right_rounded),
-      onTap: onTap,
-    );
-  }
-}
-
-class _DialogField extends StatelessWidget {
-  const _DialogField({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Color(0xFF667085),
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 3),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
-      ],
     );
   }
 }
