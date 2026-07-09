@@ -36,6 +36,15 @@ import '../../features/prescriptions/domain/usecases/delete_prescription.dart';
 import '../../features/prescriptions/domain/usecases/get_prescriptions.dart';
 import '../../features/prescriptions/domain/usecases/upload_prescription.dart';
 import '../../features/prescriptions/presentation/controllers/prescription_controller.dart';
+import '../../features/wallet/data/datasources/wallet_mock_data_source.dart';
+import '../../features/wallet/data/repositories/wallet_repository_impl.dart';
+import '../../features/wallet/domain/repositories/wallet_repository.dart';
+import '../../features/wallet/domain/usecases/add_wallet_money.dart';
+import '../../features/wallet/domain/usecases/charge_wallet.dart';
+import '../../features/wallet/domain/usecases/get_wallet_snapshot.dart';
+import '../../features/wallet/domain/usecases/refund_wallet.dart';
+import '../../features/wallet/domain/usecases/wallet_payment_method_actions.dart';
+import '../../features/wallet/presentation/controllers/wallet_controller.dart';
 import '../config/app_config.dart';
 import '../network/api_client.dart';
 
@@ -132,6 +141,43 @@ Future<void> setupServiceLocator() async {
     () => PharmacyController(
       sl<GetPopularMedicines>(),
       sl<GetRecentPrescription>(),
+    ),
+  );
+
+  // Wallet. Repository and mock datasource stay alive so balance and ledger
+  // changes persist while the application session is running.
+  sl.registerLazySingleton<WalletMockDataSource>(() => WalletMockDataSource());
+  sl.registerLazySingleton<WalletRepository>(
+    () => WalletRepositoryImpl(mockDataSource: sl<WalletMockDataSource>()),
+  );
+  sl.registerLazySingleton<GetWalletSnapshot>(
+    () => GetWalletSnapshot(sl<WalletRepository>()),
+  );
+  sl.registerLazySingleton<AddWalletMoney>(
+    () => AddWalletMoney(sl<WalletRepository>()),
+  );
+  sl.registerLazySingleton<ChargeWallet>(
+    () => ChargeWallet(sl<WalletRepository>()),
+  );
+  sl.registerLazySingleton<RefundWallet>(
+    () => RefundWallet(sl<WalletRepository>()),
+  );
+  sl.registerLazySingleton<AddWalletPaymentMethod>(
+    () => AddWalletPaymentMethod(sl<WalletRepository>()),
+  );
+  sl.registerLazySingleton<SetDefaultWalletPaymentMethod>(
+    () => SetDefaultWalletPaymentMethod(sl<WalletRepository>()),
+  );
+  sl.registerLazySingleton<RemoveWalletPaymentMethod>(
+    () => RemoveWalletPaymentMethod(sl<WalletRepository>()),
+  );
+  sl.registerFactory<WalletController>(
+    () => WalletController(
+      getWalletSnapshot: sl<GetWalletSnapshot>(),
+      addWalletMoney: sl<AddWalletMoney>(),
+      addPaymentMethod: sl<AddWalletPaymentMethod>(),
+      setDefaultPaymentMethod: sl<SetDefaultWalletPaymentMethod>(),
+      removePaymentMethod: sl<RemoveWalletPaymentMethod>(),
     ),
   );
 
