@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import '../../domain/entities/wallet_account.dart';
 import '../../domain/entities/wallet_payment_method.dart';
 import '../../domain/entities/wallet_snapshot.dart';
@@ -11,7 +13,10 @@ class WalletMockDataSource {
   final Map<String, WalletAccount> _accounts = {};
   final Map<String, List<WalletTransaction>> _transactions = {};
   final Map<String, List<WalletPaymentMethod>> _paymentMethods = {};
-  final Map<String, WalletTransaction> _processedOperations = {};
+  final Map<String, _ProcessedWalletOperation> _processedOperations = {};
+
+  int _nextTransactionSequence = 0;
+  int _nextPaymentMethodSequence = 0;
 
   Future<WalletSnapshot> getWalletSnapshot({required String patientId}) async {
     await Future<void>.delayed(const Duration(milliseconds: 300));
@@ -32,6 +37,7 @@ class WalletMockDataSource {
 
     final cleanPatientId = _validatePatientId(patientId);
     final cleanRequestId = requestId.trim();
+    final cleanPaymentMethodId = paymentMethodId.trim();
 
     if (cleanRequestId.isEmpty) {
       throw const WalletException('A top-up request id is required.');
@@ -40,10 +46,20 @@ class WalletMockDataSource {
     _ensurePatient(cleanPatientId);
 
     final operationKey = '$cleanPatientId:topup:$cleanRequestId';
+    final fingerprint = jsonEncode({
+      'amount': amount,
+      'paymentMethodId': cleanPaymentMethodId,
+    });
     final existing = _processedOperations[operationKey];
 
     if (existing != null) {
-      return existing;
+      if (existing.fingerprint != fingerprint) {
+        throw const WalletException(
+          'This idempotency key was already used with different request details.',
+        );
+      }
+
+      return existing.transaction;
     }
 
     if (amount < minimumTopUp) {
@@ -59,7 +75,7 @@ class WalletMockDataSource {
     WalletPaymentMethod? selectedMethod;
 
     for (final method in methods) {
-      if (method.id == paymentMethodId) {
+      if (method.id == cleanPaymentMethodId) {
         selectedMethod = method;
         break;
       }
@@ -78,7 +94,7 @@ class WalletMockDataSource {
     );
 
     final transaction = WalletTransaction(
-      id: 'wallet_tx_${now.microsecondsSinceEpoch}',
+      id: _nextTransactionId(cleanPatientId),
       patientId: cleanPatientId,
       type: WalletTransactionType.topUp,
       status: WalletTransactionStatus.completed,
@@ -90,7 +106,10 @@ class WalletMockDataSource {
     );
 
     _transactions[cleanPatientId]!.insert(0, transaction);
-    _processedOperations[operationKey] = transaction;
+    _processedOperations[operationKey] = _ProcessedWalletOperation(
+      transaction: transaction,
+      fingerprint: fingerprint,
+    );
 
     return transaction;
   }
@@ -106,6 +125,8 @@ class WalletMockDataSource {
 
     final cleanPatientId = _validatePatientId(patientId);
     final cleanReferenceId = referenceId.trim();
+    final cleanTitle = title.trim().isEmpty ? 'Wallet payment' : title.trim();
+    final cleanDescription = description.trim();
 
     if (cleanReferenceId.isEmpty) {
       throw const WalletException('A payment reference is required.');
@@ -114,10 +135,21 @@ class WalletMockDataSource {
     _ensurePatient(cleanPatientId);
 
     final operationKey = '$cleanPatientId:charge:$cleanReferenceId';
+    final fingerprint = jsonEncode({
+      'amount': amount,
+      'title': cleanTitle,
+      'description': cleanDescription,
+    });
     final existing = _processedOperations[operationKey];
 
     if (existing != null) {
-      return existing;
+      if (existing.fingerprint != fingerprint) {
+        throw const WalletException(
+          'This idempotency key was already used with different request details.',
+        );
+      }
+
+      return existing.transaction;
     }
 
     if (amount <= 0) {
@@ -138,19 +170,22 @@ class WalletMockDataSource {
     );
 
     final transaction = WalletTransaction(
-      id: 'wallet_tx_${now.microsecondsSinceEpoch}',
+      id: _nextTransactionId(cleanPatientId),
       patientId: cleanPatientId,
       type: WalletTransactionType.payment,
       status: WalletTransactionStatus.completed,
-      title: title.trim().isEmpty ? 'Wallet payment' : title.trim(),
-      description: description.trim(),
+      title: cleanTitle,
+      description: cleanDescription,
       amount: amount,
       referenceId: cleanReferenceId,
       createdAt: now,
     );
 
     _transactions[cleanPatientId]!.insert(0, transaction);
-    _processedOperations[operationKey] = transaction;
+    _processedOperations[operationKey] = _ProcessedWalletOperation(
+      transaction: transaction,
+      fingerprint: fingerprint,
+    );
 
     return transaction;
   }
@@ -166,6 +201,8 @@ class WalletMockDataSource {
 
     final cleanPatientId = _validatePatientId(patientId);
     final cleanReferenceId = referenceId.trim();
+    final cleanTitle = title.trim().isEmpty ? 'Wallet refund' : title.trim();
+    final cleanDescription = description.trim();
 
     if (cleanReferenceId.isEmpty) {
       throw const WalletException('A refund reference is required.');
@@ -174,10 +211,21 @@ class WalletMockDataSource {
     _ensurePatient(cleanPatientId);
 
     final operationKey = '$cleanPatientId:refund:$cleanReferenceId';
+    final fingerprint = jsonEncode({
+      'amount': amount,
+      'title': cleanTitle,
+      'description': cleanDescription,
+    });
     final existing = _processedOperations[operationKey];
 
     if (existing != null) {
-      return existing;
+      if (existing.fingerprint != fingerprint) {
+        throw const WalletException(
+          'This idempotency key was already used with different request details.',
+        );
+      }
+
+      return existing.transaction;
     }
 
     if (amount <= 0) {
@@ -193,19 +241,22 @@ class WalletMockDataSource {
     );
 
     final transaction = WalletTransaction(
-      id: 'wallet_tx_${now.microsecondsSinceEpoch}',
+      id: _nextTransactionId(cleanPatientId),
       patientId: cleanPatientId,
       type: WalletTransactionType.refund,
       status: WalletTransactionStatus.completed,
-      title: title.trim().isEmpty ? 'Wallet refund' : title.trim(),
-      description: description.trim(),
+      title: cleanTitle,
+      description: cleanDescription,
       amount: amount,
       referenceId: cleanReferenceId,
       createdAt: now,
     );
 
     _transactions[cleanPatientId]!.insert(0, transaction);
-    _processedOperations[operationKey] = transaction;
+    _processedOperations[operationKey] = _ProcessedWalletOperation(
+      transaction: transaction,
+      fingerprint: fingerprint,
+    );
 
     return transaction;
   }
@@ -272,7 +323,7 @@ class WalletMockDataSource {
     }
 
     final method = WalletPaymentMethod(
-      id: 'wallet_method_${DateTime.now().microsecondsSinceEpoch}',
+      id: _nextPaymentMethodId(cleanPatientId),
       patientId: cleanPatientId,
       type: type,
       displayName: cleanName,
@@ -335,6 +386,18 @@ class WalletMockDataSource {
     if (methodToRemove.isDefault && methods.isNotEmpty) {
       methods[0] = methods[0].copyWith(isDefault: true);
     }
+  }
+
+  String _nextTransactionId(String patientId) {
+    _nextTransactionSequence++;
+    final sequence = _nextTransactionSequence.toString().padLeft(8, '0');
+    return '${patientId}_wallet_tx_$sequence';
+  }
+
+  String _nextPaymentMethodId(String patientId) {
+    _nextPaymentMethodSequence++;
+    final sequence = _nextPaymentMethodSequence.toString().padLeft(8, '0');
+    return '${patientId}_wallet_method_$sequence';
   }
 
   bool _isValidMaskedValue(WalletPaymentMethodType type, String value) {
@@ -466,4 +529,14 @@ class WalletMockDataSource {
       ),
     );
   }
+}
+
+class _ProcessedWalletOperation {
+  const _ProcessedWalletOperation({
+    required this.transaction,
+    required this.fingerprint,
+  });
+
+  final WalletTransaction transaction;
+  final String fingerprint;
 }
