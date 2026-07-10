@@ -72,7 +72,9 @@ class AppointmentListController extends ChangeNotifier {
             : AppointmentListStatus.loaded,
         errorMessage: null,
       );
-    } on AppointmentException catch (error) {
+    } on AppointmentException catch (error, stackTrace) {
+      AppLogger.error('AppointmentListController.load', error, stackTrace);
+
       _setState(
         status: AppointmentListStatus.error,
         errorMessage: error.message,

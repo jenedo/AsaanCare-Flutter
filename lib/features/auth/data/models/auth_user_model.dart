@@ -9,6 +9,12 @@ class AuthUserModel extends AuthUser {
   });
 
   factory AuthUserModel.fromJson(Map<String, dynamic> json) {
+    final role = _optionalString(json, const ['role']);
+
+    if (role == null) {
+      throw const FormatException('Required user role is missing.');
+    }
+
     return AuthUserModel(
       id: _requiredString(json, const ['id', 'userId', 'user_id']),
       fullName: _requiredString(json, const ['fullName', 'full_name', 'name']),
@@ -18,9 +24,7 @@ class AuthUserModel extends AuthUser {
         'email',
         'phone',
       ]),
-      role: _roleFromString(
-        _optionalString(json, const ['role']) ?? UserRole.patient.name,
-      ),
+      role: _roleFromString(role),
     );
   }
 
@@ -57,9 +61,12 @@ class AuthUserModel extends AuthUser {
   static UserRole _roleFromString(String value) {
     final normalized = value.trim().toLowerCase();
 
-    return UserRole.values.firstWhere(
-      (role) => role.name == normalized,
-      orElse: () => UserRole.patient,
-    );
+    for (final role in UserRole.values) {
+      if (role.name == normalized) {
+        return role;
+      }
+    }
+
+    throw FormatException('Unsupported user role: $value');
   }
 }

@@ -59,6 +59,7 @@ class _PatientProfileScreenState extends State<PatientProfileScreen> {
       },
     );
 
+    if (!mounted) return;
     if (selected == null || selected == _language) return;
     setState(() => _language = selected);
 

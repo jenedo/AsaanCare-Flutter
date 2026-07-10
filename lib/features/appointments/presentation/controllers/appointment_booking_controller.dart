@@ -86,7 +86,8 @@ class AppointmentBookingController extends ChangeNotifier {
 
       _errorMessage = null;
       return true;
-    } on AppointmentException catch (error) {
+    } on AppointmentException catch (error, stackTrace) {
+      AppLogger.error('AppointmentBookingController.book', error, stackTrace);
       _errorMessage = error.message;
       return false;
     } catch (error, stackTrace) {

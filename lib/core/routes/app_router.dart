@@ -87,18 +87,23 @@ class AppRouter {
         );
 
       case AppRoutes.appointments:
+        final patientId = _readAuthenticatedPatientId(authController);
+
+        if (patientId == null) {
+          return _missingAuthenticatedPatientRoute(settings);
+        }
+
         return _smoothRoute(
           settings: settings,
           child: AppointmentsScreen(
             controller: sl<AppointmentListController>(),
-            patientId:
-                authController.currentUser?.id ??
-                AppointmentBookingController.defaultPatientId,
+            patientId: patientId,
           ),
         );
 
       case AppRoutes.doctorDetail:
         final doctorId = _readDoctorId(settings.arguments);
+        final patientId = _readAuthenticatedPatientId(authController);
 
         if (doctorId == null) {
           return _smoothRoute(
@@ -109,12 +114,14 @@ class AppRouter {
           );
         }
 
+        if (patientId == null) {
+          return _missingAuthenticatedPatientRoute(settings);
+        }
+
         return _smoothRoute(
           settings: settings,
           child: DoctorDetailScreen(
-            patientId:
-                authController.currentUser?.id ??
-                AppointmentBookingController.defaultPatientId,
+            patientId: patientId,
             doctorId: doctorId,
             doctorDetailController: sl<DoctorDetailController>(),
             bookingController: sl<AppointmentBookingController>(),
@@ -128,9 +135,11 @@ class AppRouter {
         );
 
       case AppRoutes.medicalRecords:
-        final patientId =
-            authController.currentUser?.id ??
-            PrescriptionController.mockPatientId;
+        final patientId = _readAuthenticatedPatientId(authController);
+
+        if (patientId == null) {
+          return _missingAuthenticatedPatientRoute(settings);
+        }
 
         return _smoothRoute(
           settings: settings,
@@ -141,13 +150,17 @@ class AppRouter {
         );
 
       case AppRoutes.wallet:
+        final patientId = _readAuthenticatedPatientId(authController);
+
+        if (patientId == null) {
+          return _missingAuthenticatedPatientRoute(settings);
+        }
+
         return _smoothRoute(
           settings: settings,
           child: WalletScreen(
             controller: sl<WalletController>(),
-            patientId:
-                authController.currentUser?.id ??
-                PrescriptionController.mockPatientId,
+            patientId: patientId,
           ),
         );
 
@@ -157,6 +170,29 @@ class AppRouter {
           child: _UnknownRouteScreen(routeName: settings.name),
         );
     }
+  }
+
+  static String? _readAuthenticatedPatientId(AuthController authController) {
+    final patientId = authController.currentUser?.id.trim();
+
+    if (patientId == null || patientId.isEmpty) {
+      return null;
+    }
+
+    return patientId;
+  }
+
+  static Route<dynamic> _missingAuthenticatedPatientRoute(
+    RouteSettings settings,
+  ) {
+    return _smoothRoute(
+      settings: settings,
+      child: const _InvalidRouteArgumentsScreen(
+        message:
+            'Your authenticated patient session is unavailable. '
+            'Please sign in again.',
+      ),
+    );
   }
 
   static String? _readDoctorId(Object? arguments) {
