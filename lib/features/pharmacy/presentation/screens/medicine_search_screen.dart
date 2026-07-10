@@ -129,6 +129,7 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
                       prefixIcon: const Icon(Icons.search_rounded),
                       suffixIcon: _searchController.text.isNotEmpty
                           ? IconButton(
+                              tooltip: 'Clear search',
                               onPressed: () {
                                 _searchController.clear();
                                 setState(() {});
@@ -528,12 +529,14 @@ class _SearchQuantityAction extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         IconButton(
+          tooltip: 'Decrease quantity',
           visualDensity: VisualDensity.compact,
           onPressed: onDecrease,
           icon: const Icon(Icons.remove_circle_outline_rounded),
         ),
         Text('$quantity', style: const TextStyle(fontWeight: FontWeight.w900)),
         IconButton(
+          tooltip: 'Increase quantity',
           visualDensity: VisualDensity.compact,
           onPressed: onAdd,
           icon: const Icon(Icons.add_circle_rounded, color: AppTheme.primary),
@@ -555,6 +558,7 @@ class _SearchCartButton extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         IconButton(
+          tooltip: 'Open cart',
           onPressed: onTap,
           icon: const Icon(Icons.shopping_cart_outlined),
         ),

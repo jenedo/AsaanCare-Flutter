@@ -298,7 +298,7 @@ class PharmacyMockDataSource implements PharmacyDataSource {
 
         output.add(
           MedicineModel(
-            id: '${_slug(seed.brand)}-${variantIndex + 1}',
+            id: '${_slug(seed.brand)}-${seedIndex + 1}-${variantIndex + 1}',
             brandName: '${seed.brand}$suffix',
             genericName: seed.generic,
             manufacturer: seed.manufacturer,
@@ -337,7 +337,7 @@ class PharmacyMockDataSource implements PharmacyDataSource {
       uploadedDate: 'Uploaded on 10 May 2024',
       isVerified: true,
       imageAsset: 'assets/images/prescription_paper.png',
-      medicineIds: ['panadol-1', 'brufen-1', 'calpol-1'],
+      medicineIds: ['panadol-1-1', 'brufen-2-1', 'calpol-3-1'],
     );
   }
 

@@ -38,9 +38,9 @@ class PharmacyController extends ChangeNotifier {
   String _selectedCity = 'Lahore';
   String? _errorMessage;
   bool _isPlacingOrder = false;
+  bool _isDisposed = false;
 
   UnmodifiableListView<Medicine> get medicines => _medicines;
-  UnmodifiableListView<Medicine> get popularMedicines => _medicines;
   PrescriptionOrder? get recentPrescription => _recentPrescription;
   PharmacyOrder? get activeOrder => _activeOrder;
   PharmacyStatus get status => _status;
@@ -114,12 +114,23 @@ class PharmacyController extends ChangeNotifier {
       }
     }
 
-    final requiresPrescription = cartItems.any(
-      (item) => item.medicine.prescriptionRequired,
-    );
+    final requiredMedicineIds = cartItems
+        .where((item) => item.medicine.prescriptionRequired)
+        .map((item) => item.medicine.id)
+        .toSet();
 
-    if (requiresPrescription && _recentPrescription?.isVerified != true) {
-      return 'A verified prescription is required for one or more medicines.';
+    if (requiredMedicineIds.isNotEmpty) {
+      final prescription = _recentPrescription;
+
+      if (prescription == null || !prescription.isVerified) {
+        return 'A verified prescription is required for one or more medicines.';
+      }
+
+      final coveredMedicineIds = prescription.medicineIds.toSet();
+
+      if (!coveredMedicineIds.containsAll(requiredMedicineIds)) {
+        return 'The verified prescription does not cover every required medicine.';
+      }
     }
 
     if (_paymentMethod == PharmacyPaymentMethod.asaancareWallet &&
@@ -366,6 +377,14 @@ class PharmacyController extends ChangeNotifier {
   void _setStatus(PharmacyStatus value, String? error) {
     _status = value;
     _errorMessage = error;
+
+    if (_isDisposed) return;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
   }
 }

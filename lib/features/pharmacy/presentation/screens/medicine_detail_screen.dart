@@ -99,6 +99,7 @@ class _MedicineDetailScreenState extends State<MedicineDetailScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
+                    tooltip: 'Decrease quantity',
                     onPressed: _quantity > 1
                         ? () => setState(() => _quantity--)
                         : null,
@@ -109,6 +110,7 @@ class _MedicineDetailScreenState extends State<MedicineDetailScreen> {
                     style: const TextStyle(fontWeight: FontWeight.w900),
                   ),
                   IconButton(
+                    tooltip: 'Increase quantity',
                     onPressed: _quantity < maxQuantity
                         ? () => setState(() => _quantity++)
                         : null,
@@ -153,6 +155,7 @@ class _MedicineDetailScreenState extends State<MedicineDetailScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
+                      tooltip: 'Decrease quantity',
                       visualDensity: VisualDensity.compact,
                       constraints: const BoxConstraints.tightFor(
                         width: 36,
@@ -173,6 +176,7 @@ class _MedicineDetailScreenState extends State<MedicineDetailScreen> {
                       ),
                     ),
                     IconButton(
+                      tooltip: 'Increase quantity',
                       visualDensity: VisualDensity.compact,
                       constraints: const BoxConstraints.tightFor(
                         width: 36,

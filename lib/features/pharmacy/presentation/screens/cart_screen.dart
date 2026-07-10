@@ -258,6 +258,7 @@ class _QuantityControls extends StatelessWidget {
     return Column(
       children: [
         IconButton(
+          tooltip: 'Remove item',
           visualDensity: VisualDensity.compact,
           onPressed: onRemove,
           icon: const Icon(
@@ -269,6 +270,7 @@ class _QuantityControls extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
+              tooltip: 'Decrease quantity',
               visualDensity: VisualDensity.compact,
               onPressed: onDecrease,
               icon: const Icon(Icons.remove_circle_outline),
@@ -278,6 +280,7 @@ class _QuantityControls extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.w900),
             ),
             IconButton(
+              tooltip: 'Increase quantity',
               visualDensity: VisualDensity.compact,
               onPressed: onIncrease,
               icon: const Icon(Icons.add_circle_outline),
