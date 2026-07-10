@@ -233,22 +233,37 @@ class WalletMockDataSource {
       throw const WalletException('Masked payment information is required.');
     }
 
-    if (!cleanMaskedValue.contains('*')) {
+    if (!_isValidMaskedValue(type, cleanMaskedValue)) {
       throw const WalletException(
-        'Only masked card or account information may be stored.',
+        'Only masked information in the supported payment format may be stored.',
       );
     }
 
     final methods = _paymentMethods[cleanPatientId]!;
 
-    for (final method in methods) {
+    for (var index = 0; index < methods.length; index++) {
+      final method = methods[index];
+
       if (method.type == type &&
           method.maskedValue.toLowerCase() == cleanMaskedValue.toLowerCase()) {
-        return method;
+        if (!setAsDefault) {
+          return method;
+        }
+
+        for (var methodIndex = 0; methodIndex < methods.length; methodIndex++) {
+          methods[methodIndex] = methods[methodIndex].copyWith(
+            isDefault: methodIndex == index,
+          );
+        }
+
+        return methods[index];
       }
     }
 
-    final shouldSetDefault = setAsDefault || methods.isEmpty;
+    final shouldSetDefault =
+        setAsDefault ||
+        methods.isEmpty ||
+        !methods.any((method) => method.isDefault);
 
     if (shouldSetDefault) {
       for (var index = 0; index < methods.length; index++) {
@@ -320,6 +335,18 @@ class WalletMockDataSource {
     if (methodToRemove.isDefault && methods.isNotEmpty) {
       methods[0] = methods[0].copyWith(isDefault: true);
     }
+  }
+
+  bool _isValidMaskedValue(WalletPaymentMethodType type, String value) {
+    return switch (type) {
+      WalletPaymentMethodType.card => RegExp(r'^\*{4} \d{4}$').hasMatch(value),
+      WalletPaymentMethodType.bankTransfer => RegExp(
+        r'^PK\*{2} \*{4} \d{4}$',
+        caseSensitive: false,
+      ).hasMatch(value),
+      WalletPaymentMethodType.easypaisa || WalletPaymentMethodType.jazzCash =>
+        RegExp(r'^03\*{2} \*{3}\d{4}$').hasMatch(value),
+    };
   }
 
   String _validatePatientId(String value) {

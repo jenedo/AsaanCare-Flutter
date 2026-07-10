@@ -161,6 +161,7 @@ class AppRouter {
           child: WalletScreen(
             controller: sl<WalletController>(),
             patientId: patientId,
+            disposeController: true,
           ),
         );
 

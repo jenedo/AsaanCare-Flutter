@@ -4,6 +4,7 @@ import '../../../../core/layout/app_layout.dart';
 import '../../../../core/routes/app_routes.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/app_bottom_nav_bar.dart';
+import '../../domain/entities/wallet_transaction.dart';
 import '../controllers/wallet_controller.dart';
 import '../widgets/add_money_sheet.dart';
 import '../widgets/wallet_balance_card.dart';
@@ -17,10 +18,12 @@ class WalletScreen extends StatefulWidget {
     super.key,
     required this.controller,
     required this.patientId,
+    this.disposeController = false,
   });
 
   final WalletController controller;
   final String patientId;
+  final bool disposeController;
 
   @override
   State<WalletScreen> createState() => _WalletScreenState();
@@ -40,7 +43,11 @@ class _WalletScreenState extends State<WalletScreen> {
   @override
   void dispose() {
     widget.controller.removeListener(_refresh);
-    widget.controller.dispose();
+
+    if (widget.disposeController) {
+      widget.controller.dispose();
+    }
+
     super.dispose();
   }
 
@@ -147,9 +154,7 @@ class _WalletScreenState extends State<WalletScreen> {
     );
   }
 
-  void _showTransactionDetails(int index) {
-    final transaction = widget.controller.recentTransactions[index];
-
+  void _showTransactionDetails(WalletTransaction transaction) {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -323,7 +328,9 @@ class _WalletScreenState extends State<WalletScreen> {
                 padding: const EdgeInsets.only(bottom: 8),
                 child: WalletTransactionTile(
                   transaction: controller.recentTransactions[index],
-                  onTap: () => _showTransactionDetails(index),
+                  onTap: () => _showTransactionDetails(
+                    controller.recentTransactions[index],
+                  ),
                 ),
               ),
             ),

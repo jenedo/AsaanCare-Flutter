@@ -80,58 +80,66 @@ class _WalletTransactionsScreenState extends State<WalletTransactionsScreen> {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      builder: (context) {
+      isScrollControlled: true,
+      builder: (sheetContext) {
         final prefix = transaction.isCredit ? '+' : '-';
+        final maximumHeight = MediaQuery.sizeOf(sheetContext).height * 0.85;
 
         return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(22, 0, 22, 28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  transaction.isCredit
-                      ? Icons.add_circle_outline_rounded
-                      : Icons.payments_outlined,
-                  size: 50,
-                  color: transaction.isCredit
-                      ? AppTheme.success
-                      : AppTheme.primary,
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  transaction.title,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: AppTheme.textDark,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '$prefix ${formatWalletRupees(transaction.amount)}',
-                  style: TextStyle(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maximumHeight),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(22, 0, 22, 28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    transaction.isCredit
+                        ? Icons.add_circle_outline_rounded
+                        : Icons.payments_outlined,
+                    size: 50,
                     color: transaction.isCredit
                         ? AppTheme.success
-                        : AppTheme.textDark,
-                    fontSize: 26,
-                    fontWeight: FontWeight.w900,
+                        : AppTheme.primary,
                   ),
-                ),
-                const SizedBox(height: 20),
-                _DetailRow(label: 'Status', value: transaction.status.label),
-                _DetailRow(label: 'Type', value: transaction.type.label),
-                _DetailRow(
-                  label: 'Date',
-                  value: formatWalletDate(transaction.createdAt),
-                ),
-                _DetailRow(label: 'Reference', value: transaction.referenceId),
-                _DetailRow(
-                  label: 'Description',
-                  value: transaction.description,
-                ),
-              ],
+                  const SizedBox(height: 14),
+                  Text(
+                    transaction.title,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: AppTheme.textDark,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '$prefix ${formatWalletRupees(transaction.amount)}',
+                    style: TextStyle(
+                      color: transaction.isCredit
+                          ? AppTheme.success
+                          : AppTheme.textDark,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _DetailRow(label: 'Status', value: transaction.status.label),
+                  _DetailRow(label: 'Type', value: transaction.type.label),
+                  _DetailRow(
+                    label: 'Date',
+                    value: formatWalletDate(transaction.createdAt),
+                  ),
+                  _DetailRow(
+                    label: 'Reference',
+                    value: transaction.referenceId,
+                  ),
+                  _DetailRow(
+                    label: 'Description',
+                    value: transaction.description,
+                  ),
+                ],
+              ),
             ),
           ),
         );

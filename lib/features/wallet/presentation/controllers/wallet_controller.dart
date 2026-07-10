@@ -41,6 +41,7 @@ class WalletController extends ChangeNotifier {
   bool _isBalanceVisible = true;
   bool _isAddingMoney = false;
   bool _isUpdatingPaymentMethods = false;
+  bool _isDisposed = false;
 
   WalletSnapshot? get snapshot => _snapshot;
   WalletAccount? get account => _snapshot?.account;
@@ -77,7 +78,7 @@ class WalletController extends ChangeNotifier {
       }
     }
 
-    return paymentMethods.isEmpty ? null : paymentMethods.first;
+    return null;
   }
 
   Future<void> load({
@@ -92,12 +93,13 @@ class WalletController extends ChangeNotifier {
 
     _status = WalletStatus.loading;
     _errorMessage = null;
-    notifyListeners();
+    _notifyListeners();
 
     try {
       await _reloadSnapshot(patientId);
       _status = WalletStatus.loaded;
-    } on WalletException catch (error) {
+    } on WalletException catch (error, stackTrace) {
+      AppLogger.error('WalletController.load', error, stackTrace);
       _status = WalletStatus.error;
       _errorMessage = error.message;
     } catch (error, stackTrace) {
@@ -106,7 +108,7 @@ class WalletController extends ChangeNotifier {
       _errorMessage = 'Could not load your wallet. Please try again.';
     }
 
-    notifyListeners();
+    _notifyListeners();
   }
 
   Future<void> refresh(String patientId) {
@@ -115,7 +117,7 @@ class WalletController extends ChangeNotifier {
 
   void toggleBalanceVisibility() {
     _isBalanceVisible = !_isBalanceVisible;
-    notifyListeners();
+    _notifyListeners();
   }
 
   Future<bool> addMoney({
@@ -128,22 +130,28 @@ class WalletController extends ChangeNotifier {
     _isAddingMoney = true;
     _errorMessage = null;
     _successMessage = null;
-    notifyListeners();
+    _notifyListeners();
 
     try {
-      await _addWalletMoney(
+      final transaction = await _addWalletMoney(
         patientId: patientId,
         amount: amount,
         paymentMethodId: paymentMethodId,
         requestId: 'topup_${DateTime.now().microsecondsSinceEpoch}',
       );
 
-      await _reloadSnapshot(patientId);
+      try {
+        await _reloadSnapshot(patientId);
+      } catch (error, stackTrace) {
+        AppLogger.error('WalletController.addMoney.reload', error, stackTrace);
+        _applyCommittedTopUp(transaction);
+      }
 
       _status = WalletStatus.loaded;
       _successMessage = 'Rs. $amount added to your wallet.';
       return true;
-    } on WalletException catch (error) {
+    } on WalletException catch (error, stackTrace) {
+      AppLogger.error('WalletController.addMoney', error, stackTrace);
       _errorMessage = error.message;
       return false;
     } catch (error, stackTrace) {
@@ -152,7 +160,7 @@ class WalletController extends ChangeNotifier {
       return false;
     } finally {
       _isAddingMoney = false;
-      notifyListeners();
+      _notifyListeners();
     }
   }
 
@@ -168,7 +176,7 @@ class WalletController extends ChangeNotifier {
     _isUpdatingPaymentMethods = true;
     _errorMessage = null;
     _successMessage = null;
-    notifyListeners();
+    _notifyListeners();
 
     try {
       await _addPaymentMethod(
@@ -184,7 +192,8 @@ class WalletController extends ChangeNotifier {
       _status = WalletStatus.loaded;
       _successMessage = 'Payment method added.';
       return true;
-    } on WalletException catch (error) {
+    } on WalletException catch (error, stackTrace) {
+      AppLogger.error('WalletController.addPaymentMethod', error, stackTrace);
       _errorMessage = error.message;
       return false;
     } catch (error, stackTrace) {
@@ -193,7 +202,7 @@ class WalletController extends ChangeNotifier {
       return false;
     } finally {
       _isUpdatingPaymentMethods = false;
-      notifyListeners();
+      _notifyListeners();
     }
   }
 
@@ -206,7 +215,7 @@ class WalletController extends ChangeNotifier {
     _isUpdatingPaymentMethods = true;
     _errorMessage = null;
     _successMessage = null;
-    notifyListeners();
+    _notifyListeners();
 
     try {
       await _setDefaultPaymentMethod(
@@ -219,7 +228,12 @@ class WalletController extends ChangeNotifier {
       _status = WalletStatus.loaded;
       _successMessage = 'Default payment method updated.';
       return true;
-    } on WalletException catch (error) {
+    } on WalletException catch (error, stackTrace) {
+      AppLogger.error(
+        'WalletController.setDefaultPaymentMethod',
+        error,
+        stackTrace,
+      );
       _errorMessage = error.message;
       return false;
     } catch (error, stackTrace) {
@@ -232,7 +246,7 @@ class WalletController extends ChangeNotifier {
       return false;
     } finally {
       _isUpdatingPaymentMethods = false;
-      notifyListeners();
+      _notifyListeners();
     }
   }
 
@@ -245,7 +259,7 @@ class WalletController extends ChangeNotifier {
     _isUpdatingPaymentMethods = true;
     _errorMessage = null;
     _successMessage = null;
-    notifyListeners();
+    _notifyListeners();
 
     try {
       await _removePaymentMethod(
@@ -258,7 +272,12 @@ class WalletController extends ChangeNotifier {
       _status = WalletStatus.loaded;
       _successMessage = 'Payment method removed.';
       return true;
-    } on WalletException catch (error) {
+    } on WalletException catch (error, stackTrace) {
+      AppLogger.error(
+        'WalletController.removePaymentMethod',
+        error,
+        stackTrace,
+      );
       _errorMessage = error.message;
       return false;
     } catch (error, stackTrace) {
@@ -271,7 +290,7 @@ class WalletController extends ChangeNotifier {
       return false;
     } finally {
       _isUpdatingPaymentMethods = false;
-      notifyListeners();
+      _notifyListeners();
     }
   }
 
@@ -282,10 +301,42 @@ class WalletController extends ChangeNotifier {
 
     _errorMessage = null;
     _successMessage = null;
-    notifyListeners();
+    _notifyListeners();
   }
 
   Future<void> _reloadSnapshot(String patientId) async {
     _snapshot = await _getWalletSnapshot(patientId: patientId);
+  }
+
+  void _applyCommittedTopUp(WalletTransaction transaction) {
+    final current = _snapshot;
+
+    if (current == null ||
+        current.transactions.any((existing) => existing.id == transaction.id)) {
+      return;
+    }
+
+    _snapshot = WalletSnapshot(
+      account: current.account.copyWith(
+        balance: current.account.balance + transaction.amount,
+        updatedAt: transaction.createdAt,
+      ),
+      transactions: List<WalletTransaction>.unmodifiable([
+        transaction,
+        ...current.transactions,
+      ]),
+      paymentMethods: current.paymentMethods,
+    );
+  }
+
+  void _notifyListeners() {
+    if (_isDisposed) return;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
   }
 }
