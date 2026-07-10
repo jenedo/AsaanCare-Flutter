@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_assets.dart';
+import '../../../core/layout/app_layout.dart';
 import '../../../core/routes/app_routes.dart';
 import '../../../core/theme/app_theme.dart';
 
@@ -181,10 +182,20 @@ class _SplashPage extends StatelessWidget {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final height = constraints.maxHeight;
-              final logoHeight = height < 720 ? 130.0 : 165.0;
+              final veryCompactHeight = height < 420;
+              final logoHeight = veryCompactHeight
+                  ? 80.0
+                  : height < 720
+                  ? 130.0
+                  : 165.0;
 
               return Padding(
-                padding: const EdgeInsets.fromLTRB(28, 34, 28, 28),
+                padding: EdgeInsets.fromLTRB(
+                  AppLayout.horizontalPaddingForWidth(constraints.maxWidth),
+                  veryCompactHeight ? 14 : 34,
+                  AppLayout.horizontalPaddingForWidth(constraints.maxWidth),
+                  veryCompactHeight ? 14 : 28,
+                ),
                 child: Column(
                   children: [
                     const Spacer(flex: 4),
@@ -196,18 +207,18 @@ class _SplashPage extends StatelessWidget {
                       fit: BoxFit.contain,
                     ),
                     const Spacer(flex: 5),
-                    const Text(
+                    Text(
                       'Your health. Our priority.\nAlways here for you.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 21,
+                        fontSize: veryCompactHeight ? 16 : 21,
                         height: 1.35,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -0.2,
                       ),
                     ),
-                    const SizedBox(height: 28),
+                    SizedBox(height: veryCompactHeight ? 10 : 28),
                     _DotsIndicator(
                       count: 4,
                       currentIndex: currentIndex,
@@ -252,15 +263,29 @@ class _OnboardingContentPage extends StatelessWidget {
     return SafeArea(
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final compact = constraints.maxHeight < 760;
+          final compact =
+              constraints.maxHeight < 760 || constraints.maxWidth < 360;
+          final veryNarrow = constraints.maxWidth < 320;
+          final horizontalPadding = AppLayout.horizontalPaddingForWidth(
+            constraints.maxWidth,
+          );
+          final topPadding = compact ? 18.0 : 32.0;
+          const bottomPadding = 22.0;
+          final minimumContentHeight =
+              constraints.maxHeight > topPadding + bottomPadding
+              ? constraints.maxHeight - topPadding - bottomPadding
+              : 0.0;
 
           return SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
-            padding: EdgeInsets.fromLTRB(26, compact ? 22 : 32, 26, 22),
+            padding: EdgeInsets.fromLTRB(
+              horizontalPadding,
+              topPadding,
+              horizontalPadding,
+              bottomPadding,
+            ),
             child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: constraints.maxHeight - 44,
-              ),
+              constraints: BoxConstraints(minHeight: minimumContentHeight),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -268,7 +293,11 @@ class _OnboardingContentPage extends StatelessWidget {
                     title,
                     style: TextStyle(
                       color: const Color(0xFF07132D),
-                      fontSize: compact ? 33 : 38,
+                      fontSize: veryNarrow
+                          ? 28
+                          : compact
+                          ? 33
+                          : 38,
                       height: 1.12,
                       fontWeight: FontWeight.w900,
                       letterSpacing: -1.1,
@@ -279,7 +308,11 @@ class _OnboardingContentPage extends StatelessWidget {
                     subtitle,
                     style: TextStyle(
                       color: const Color(0xFF33415C),
-                      fontSize: compact ? 17 : 20,
+                      fontSize: veryNarrow
+                          ? 15
+                          : compact
+                          ? 17
+                          : 20,
                       height: 1.5,
                       fontWeight: FontWeight.w400,
                     ),
@@ -517,48 +550,85 @@ class _FeatureRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          height: compact ? 50 : 58,
-          width: compact ? 50 : 58,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final stackVertically = constraints.maxWidth < 220;
+        final iconSize = stackVertically
+            ? 42.0
+            : compact
+            ? 50.0
+            : 58.0;
+
+        final icon = Container(
+          height: iconSize,
+          width: iconSize,
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               colors: [AppTheme.primaryLight, AppTheme.primary],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(stackVertically ? 14 : 18),
           ),
-          child: Icon(item.icon, color: Colors.white, size: compact ? 26 : 30),
-        ),
-        SizedBox(width: compact ? 15 : 20),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                item.title,
-                style: TextStyle(
-                  color: const Color(0xFF07132D),
-                  fontSize: compact ? 16 : 20,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.3,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                item.subtitle,
-                style: TextStyle(
-                  color: const Color(0xFF3E4A63),
-                  fontSize: compact ? 13 : 15,
-                  height: 1.25,
-                ),
-              ),
-            ],
+          child: Icon(
+            item.icon,
+            color: Colors.white,
+            size: stackVertically
+                ? 22
+                : compact
+                ? 26
+                : 30,
           ),
-        ),
-      ],
+        );
+
+        final text = Column(
+          crossAxisAlignment: stackVertically
+              ? CrossAxisAlignment.center
+              : CrossAxisAlignment.start,
+          children: [
+            Text(
+              item.title,
+              textAlign: stackVertically ? TextAlign.center : TextAlign.start,
+              style: TextStyle(
+                color: const Color(0xFF07132D),
+                fontSize: stackVertically
+                    ? 14
+                    : compact
+                    ? 16
+                    : 20,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.3,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              item.subtitle,
+              textAlign: stackVertically ? TextAlign.center : TextAlign.start,
+              style: TextStyle(
+                color: const Color(0xFF3E4A63),
+                fontSize: stackVertically
+                    ? 12
+                    : compact
+                    ? 13
+                    : 15,
+                height: 1.25,
+              ),
+            ),
+          ],
+        );
+
+        if (stackVertically) {
+          return Column(children: [icon, const SizedBox(height: 9), text]);
+        }
+
+        return Row(
+          children: [
+            icon,
+            SizedBox(width: compact ? 15 : 20),
+            Expanded(child: text),
+          ],
+        );
+      },
     );
   }
 }
@@ -592,29 +662,41 @@ class _PrimaryOnboardingButton extends StatelessWidget {
             ),
             borderRadius: BorderRadius.circular(18),
           ),
-          child: Row(
-            children: [
-              const SizedBox(width: 54),
-              Expanded(
-                child: Text(
-                  text,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: compact ? 19 : 22,
-                    fontWeight: FontWeight.w900,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final showArrow = constraints.maxWidth >= 150;
+              final textPadding = showArrow ? 52.0 : 8.0;
+
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: textPadding),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        text,
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: compact ? 19 : 22,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              const Padding(
-                padding: EdgeInsets.only(right: 20),
-                child: Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  color: Colors.white,
-                  size: 23,
-                ),
-              ),
-            ],
+                  if (showArrow)
+                    const Positioned(
+                      right: 16,
+                      child: Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        color: Colors.white,
+                        size: 23,
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -632,16 +714,21 @@ class _SecondaryLoginButton extends StatelessWidget {
     return OutlinedButton(
       onPressed: onTap,
       style: OutlinedButton.styleFrom(
-        minimumSize: const Size.fromHeight(56),
+        minimumSize: const Size(0, 56),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         side: const BorderSide(color: AppTheme.primary, width: 1.4),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
-      child: const Text(
-        'Login',
-        style: TextStyle(
-          color: AppTheme.primary,
-          fontSize: 20,
-          fontWeight: FontWeight.w900,
+      child: const FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          'Login',
+          maxLines: 1,
+          style: TextStyle(
+            color: AppTheme.primary,
+            fontSize: 20,
+            fontWeight: FontWeight.w900,
+          ),
         ),
       ),
     );
@@ -661,26 +748,29 @@ class _DotsIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(count, (index) {
-        final isActive = index == currentIndex;
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(count, (index) {
+          final isActive = index == currentIndex;
 
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          margin: const EdgeInsets.symmetric(horizontal: 5),
-          height: 10,
-          width: isActive ? 25 : 10,
-          decoration: BoxDecoration(
-            color: isActive
-                ? (lightMode ? Colors.white : AppTheme.primary)
-                : (lightMode
-                      ? Colors.white.withValues(alpha: 0.35)
-                      : const Color(0xFFD6E1E4)),
-            borderRadius: BorderRadius.circular(99),
-          ),
-        );
-      }),
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            margin: const EdgeInsets.symmetric(horizontal: 5),
+            height: 10,
+            width: isActive ? 25 : 10,
+            decoration: BoxDecoration(
+              color: isActive
+                  ? (lightMode ? Colors.white : AppTheme.primary)
+                  : (lightMode
+                        ? Colors.white.withValues(alpha: 0.35)
+                        : const Color(0xFFD6E1E4)),
+              borderRadius: BorderRadius.circular(99),
+            ),
+          );
+        }),
+      ),
     );
   }
 }
