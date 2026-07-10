@@ -1,22 +1,28 @@
 // Public named dependency parameters intentionally map to private fields.
 // ignore_for_file: prefer_initializing_formals
+import '../../../../core/logging/app_logger.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../domain/exceptions/auth_exception.dart';
 import '../models/auth_user_model.dart';
+import '../storage/auth_token_store.dart';
 import 'auth_data_source.dart';
 
 class AuthRemoteDataSource implements AuthDataSource {
-  AuthRemoteDataSource({required ApiClient apiClient}) : _apiClient = apiClient;
+  AuthRemoteDataSource({
+    required ApiClient apiClient,
+    required AuthTokenStore tokenStore,
+  }) : _apiClient = apiClient,
+       _tokenStore = tokenStore;
 
   final ApiClient _apiClient;
-  String? _accessToken;
+  final AuthTokenStore _tokenStore;
 
   @override
   Future<AuthUserModel?> getCurrentUser() async {
-    final token = _accessToken;
-    if (token == null || token.isEmpty) return null;
+    final token = await _readStoredToken();
+    if (token == null) return null;
 
     try {
       final response = await _apiClient.getJson(
@@ -26,7 +32,7 @@ class AuthRemoteDataSource implements AuthDataSource {
       return _readUser(response);
     } on ApiException catch (error) {
       if (error.isUnauthorized) {
-        _accessToken = null;
+        await _clearStoredToken();
         return null;
       }
       throw AuthException(error.message);
@@ -55,7 +61,7 @@ class AuthRemoteDataSource implements AuthDataSource {
         );
       }
 
-      _accessToken = token;
+      await _writeStoredToken(token);
       return user;
     } on ApiException catch (error) {
       throw AuthException(error.message);
@@ -93,16 +99,61 @@ class AuthRemoteDataSource implements AuthDataSource {
 
   @override
   Future<void> logout() async {
-    final token = _accessToken;
-    _accessToken = null;
+    final token = await _readStoredToken();
+    await _clearStoredToken();
 
-    if (token == null || token.isEmpty) return;
+    if (token == null) return;
 
     try {
       await _apiClient.postJson(ApiEndpoints.authLogout, bearerToken: token);
     } on ApiException catch (error) {
       if (error.isUnauthorized) return;
       throw AuthException(error.message);
+    }
+  }
+
+  Future<String?> _readStoredToken() async {
+    try {
+      return await _tokenStore.readAccessToken();
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'AuthRemoteDataSource.readAccessToken',
+        error,
+        stackTrace,
+      );
+      throw const AuthException(
+        'Could not restore your secure session. Please log in again.',
+      );
+    }
+  }
+
+  Future<void> _writeStoredToken(String token) async {
+    try {
+      await _tokenStore.writeAccessToken(token);
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'AuthRemoteDataSource.writeAccessToken',
+        error,
+        stackTrace,
+      );
+      throw const AuthException(
+        'Could not securely save your session. Please try again.',
+      );
+    }
+  }
+
+  Future<void> _clearStoredToken() async {
+    try {
+      await _tokenStore.clearAccessToken();
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'AuthRemoteDataSource.clearAccessToken',
+        error,
+        stackTrace,
+      );
+      throw const AuthException(
+        'Could not securely clear your session. Please try again.',
+      );
     }
   }
 
