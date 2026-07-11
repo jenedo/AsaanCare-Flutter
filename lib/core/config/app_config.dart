@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 abstract final class AppConfig {
   const AppConfig._();
 
@@ -25,11 +27,26 @@ abstract final class AppConfig {
       Duration(seconds: requestTimeoutSeconds);
 
   static void validate() {
+    validateValues(
+      useMockApi: useMockApi,
+      apiBaseUrl: apiBaseUrl,
+      requestTimeoutSeconds: requestTimeoutSeconds,
+      allowLocalHttp: kDebugMode,
+    );
+  }
+
+  @visibleForTesting
+  static void validateValues({
+    required bool useMockApi,
+    required String apiBaseUrl,
+    required int requestTimeoutSeconds,
+    required bool allowLocalHttp,
+  }) {
     if (useMockApi) return;
 
     validateRemoteApiUrl(
       apiBaseUrl,
-      allowInsecureLocalApi: allowInsecureLocalApi,
+      allowInsecureLocalApi: allowLocalHttp || allowInsecureLocalApi,
     );
 
     if (requestTimeoutSeconds < 5 || requestTimeoutSeconds > 120) {

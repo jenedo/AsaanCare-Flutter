@@ -46,6 +46,8 @@ void main() {
       );
       expect(controller.selectedCity, 'Lahore');
       expect(controller.activeOrder, isNull);
+      expect(controller.recentPrescription, isNull);
+      expect(controller.status, PharmacyStatus.initial);
       expect(controller.errorMessage, isNull);
     },
   );
