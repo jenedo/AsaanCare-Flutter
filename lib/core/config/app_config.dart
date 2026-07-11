@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 abstract final class AppConfig {
   const AppConfig._();
 
@@ -20,14 +22,33 @@ abstract final class AppConfig {
       Duration(seconds: requestTimeoutSeconds);
 
   static void validate() {
+    validateValues(
+      useMockApi: useMockApi,
+      apiBaseUrl: apiBaseUrl,
+      requestTimeoutSeconds: requestTimeoutSeconds,
+      allowLocalHttp: kDebugMode,
+    );
+  }
+
+  @visibleForTesting
+  static void validateValues({
+    required bool useMockApi,
+    required String apiBaseUrl,
+    required int requestTimeoutSeconds,
+    required bool allowLocalHttp,
+  }) {
     if (useMockApi) return;
 
     final uri = Uri.tryParse(apiBaseUrl.trim());
-    final validScheme = uri?.scheme == 'https' || uri?.scheme == 'http';
+    final isHttps = uri?.scheme == 'https';
+    final isAllowedLocalHttp =
+        allowLocalHttp &&
+        uri?.scheme == 'http' &&
+        const {'localhost', '127.0.0.1', '10.0.2.2'}.contains(uri?.host);
 
-    if (uri == null || !uri.hasAuthority || !validScheme) {
+    if (uri == null || !uri.hasAuthority || (!isHttps && !isAllowedLocalHttp)) {
       throw StateError(
-        'Remote API mode requires an absolute API_BASE_URL using HTTPS or HTTP.',
+        'Remote API mode requires HTTPS. Plain HTTP is allowed only for local debug hosts.',
       );
     }
 

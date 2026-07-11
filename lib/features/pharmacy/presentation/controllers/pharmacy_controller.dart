@@ -253,6 +253,8 @@ class PharmacyController extends ChangeNotifier {
     if (resetSession) {
       _favoriteIds.clear();
       _activeOrder = null;
+      _recentPrescription = null;
+      _status = PharmacyStatus.initial;
       _paymentMethod = PharmacyPaymentMethod.cashOnDelivery;
       _deliveryAddress = '123, Model Town, Block B, Lahore, Punjab 54000';
       _selectedPharmacy = 'MediPlus Pharmacy';

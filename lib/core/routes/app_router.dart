@@ -108,9 +108,14 @@ class AppRouter {
         );
 
       case AppRoutes.medicalRecords:
-        final patientId =
-            authController.currentUser?.id ??
-            PrescriptionController.mockPatientId;
+        final patientId = authController.currentUser?.id.trim();
+
+        if (patientId == null || patientId.isEmpty) {
+          return _smoothRoute(
+            settings: const RouteSettings(name: AppRoutes.login),
+            child: LoginScreen(authController: authController),
+          );
+        }
 
         return _smoothRoute(
           settings: settings,
