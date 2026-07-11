@@ -32,7 +32,8 @@ if ($branch -ne "pharmacy-consolidated-fix-20260708") {
   throw "Wrong branch: $branch. Switch to pharmacy-consolidated-fix-20260708 first."
 }
 
-if (-not (git diff --quiet)) {
+$repoStatus = git status --porcelain
+if ($repoStatus) {
   throw "Working tree has uncommitted changes. Commit or stash them before running this patch."
 }
 
@@ -181,11 +182,23 @@ $authController = Join-Path $RepoPath "lib\features\auth\presentation\controller
 Replace-Required `
   -Path $authController `
   -Old @'
+      _currentUser = await _loginUser(
+        emailOrPhone: emailOrPhone,
+        password: password,
+      );
+      _errorMessage = null;
+      return true;
     } on AuthException catch (error) {
       _errorMessage = error.message;
       return false;
 '@ `
   -New @'
+      _currentUser = await _loginUser(
+        emailOrPhone: emailOrPhone,
+        password: password,
+      );
+      _errorMessage = null;
+      return true;
     } on AuthException catch (error, stackTrace) {
       AppLogger.error('AuthController.login', error, stackTrace);
       _errorMessage = error.message;
@@ -195,11 +208,25 @@ Replace-Required `
 Replace-Required `
   -Path $authController `
   -Old @'
+      await _registerPatient(
+        fullName: fullName,
+        emailOrPhone: emailOrPhone,
+        password: password,
+      );
+      _errorMessage = null;
+      return true;
     } on AuthException catch (error) {
       _errorMessage = error.message;
       return false;
 '@ `
   -New @'
+      await _registerPatient(
+        fullName: fullName,
+        emailOrPhone: emailOrPhone,
+        password: password,
+      );
+      _errorMessage = null;
+      return true;
     } on AuthException catch (error, stackTrace) {
       AppLogger.error('AuthController.registerPatient', error, stackTrace);
       _errorMessage = error.message;
