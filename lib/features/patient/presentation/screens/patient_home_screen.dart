@@ -51,7 +51,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
         return;
 
       case 1:
-        _openDoctor('doctor_ali');
+        Navigator.of(context).pushNamed(AppRoutes.findDoctors);
         return;
 
       case 2:
@@ -103,13 +103,15 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 ),
                 const SizedBox(height: 22),
                 _SearchBar(
-                  onTap: () => _showComingSoon('Search'),
+                  onTap: () =>
+                      Navigator.of(context).pushNamed(AppRoutes.findDoctors),
                   onMicTap: () => _showComingSoon('Voice search'),
                 ),
                 const SizedBox(height: 22),
                 _ConsultBanner(
                   doctorAsset: _bannerDoctor,
-                  onTap: () => _openDoctor('doctor_ali'),
+                  onTap: () =>
+                      Navigator.of(context).pushNamed(AppRoutes.findDoctors),
                 ),
                 const SizedBox(height: 24),
                 _SectionHeader(
@@ -123,7 +125,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 _SectionHeader(
                   title: 'Featured Doctors',
                   actionText: 'View all',
-                  onTap: () => _showComingSoon('Featured doctors'),
+                  onTap: () =>
+                      Navigator.of(context).pushNamed(AppRoutes.findDoctors),
                 ),
                 const SizedBox(height: 14),
                 _FeaturedDoctorsRow(
@@ -160,7 +163,9 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                           icon: Icons.calendar_month_outlined,
                           title: 'Book\nAppointment',
                           iconColor: const Color(0xFF2563EB),
-                          onTap: () => _openDoctor('doctor_ali'),
+                          onTap: () => Navigator.of(
+                            context,
+                          ).pushNamed(AppRoutes.findDoctors),
                         ),
                         PatientHomeCard(
                           icon: Icons.medication_liquid_outlined,

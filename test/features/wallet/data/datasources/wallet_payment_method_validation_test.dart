@@ -35,9 +35,7 @@ void main() {
       final dataSource = WalletMockDataSource();
       const patientId = 'patient-default-test';
 
-      final initial = await dataSource.getWalletSnapshot(
-        patientId: patientId,
-      );
+      final initial = await dataSource.getWalletSnapshot(patientId: patientId);
       final easypaisa = initial.paymentMethods.firstWhere(
         (method) => method.type == WalletPaymentMethodType.easypaisa,
       );
@@ -50,9 +48,7 @@ void main() {
         setAsDefault: true,
       );
 
-      final updated = await dataSource.getWalletSnapshot(
-        patientId: patientId,
-      );
+      final updated = await dataSource.getWalletSnapshot(patientId: patientId);
 
       expect(promoted.id, easypaisa.id);
       expect(promoted.isDefault, isTrue);
@@ -61,9 +57,7 @@ void main() {
         hasLength(1),
       );
       expect(
-        updated.paymentMethods
-            .singleWhere((method) => method.isDefault)
-            .id,
+        updated.paymentMethods.singleWhere((method) => method.isDefault).id,
         easypaisa.id,
       );
     });

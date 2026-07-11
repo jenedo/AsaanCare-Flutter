@@ -5,3 +5,4 @@ abstract class DoctorRepository {
 
   Future<Doctor> getDoctorDetail(String doctorId);
 }
+

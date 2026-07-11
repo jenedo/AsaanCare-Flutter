@@ -31,7 +31,7 @@ android {
         applicationId = "com.asaancare.app"
 
         // flutter_secure_storage 10.x requires Android API 23 or newer.
-        minSdk = 23
+        minSdk = flutter.minSdkVersion
 
         // Keep targetSdk controlled by Flutter for now.
         // compileSdk can be raised without forcing new Android runtime behavior.

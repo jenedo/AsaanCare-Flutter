@@ -25,7 +25,9 @@ import '../../features/doctors/data/datasources/doctor_mock_data_source.dart';
 import '../../features/doctors/data/repositories/doctor_repository_impl.dart';
 import '../../features/doctors/domain/repositories/doctor_repository.dart';
 import '../../features/doctors/domain/usecases/get_doctor_detail.dart';
+import '../../features/doctors/domain/usecases/get_doctors.dart';
 import '../../features/doctors/presentation/controllers/doctor_detail_controller.dart';
+import '../../features/doctors/presentation/controllers/find_doctors_controller.dart';
 import '../../features/pharmacy/data/datasources/pharmacy_mock_data_source.dart';
 import '../../features/pharmacy/data/repositories/pharmacy_repository_impl.dart';
 import '../../features/pharmacy/domain/repositories/pharmacy_repository.dart';
@@ -104,6 +106,12 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<DoctorMockDataSource>(() => DoctorMockDataSource());
   sl.registerLazySingleton<DoctorRepository>(
     () => DoctorRepositoryImpl(mockDataSource: sl<DoctorMockDataSource>()),
+  );
+  sl.registerLazySingleton<GetDoctors>(
+    () => GetDoctors(sl<DoctorRepository>()),
+  );
+  sl.registerFactory<FindDoctorsController>(
+    () => FindDoctorsController(getDoctors: sl<GetDoctors>()),
   );
   sl.registerLazySingleton<GetDoctorDetail>(
     () => GetDoctorDetail(sl<DoctorRepository>()),

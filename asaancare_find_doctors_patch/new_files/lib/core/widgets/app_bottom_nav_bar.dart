@@ -26,36 +26,11 @@ class AppBottomNavBar extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(4, 7, 4, 6),
         child: Row(
           children: [
-            _BottomNavItem(
-              icon: Icons.home_rounded,
-              label: 'Home',
-              selected: currentIndex == 0,
-              onTap: () => onTap(0),
-            ),
-            _BottomNavItem(
-              icon: Icons.medical_services_outlined,
-              label: 'Find Doctor',
-              selected: currentIndex == 1,
-              onTap: () => onTap(1),
-            ),
-            _BottomNavItem(
-              icon: Icons.local_pharmacy_outlined,
-              label: 'Pharmacy',
-              selected: currentIndex == 2,
-              onTap: () => onTap(2),
-            ),
-            _BottomNavItem(
-              icon: Icons.assignment_outlined,
-              label: 'Records',
-              selected: currentIndex == 3,
-              onTap: () => onTap(3),
-            ),
-            _BottomNavItem(
-              icon: Icons.account_balance_wallet_outlined,
-              label: 'Wallet',
-              selected: currentIndex == 4,
-              onTap: () => onTap(4),
-            ),
+            _BottomNavItem(icon: Icons.home_rounded, label: 'Home', selected: currentIndex == 0, onTap: () => onTap(0)),
+            _BottomNavItem(icon: Icons.medical_services_outlined, label: 'Find Doctor', selected: currentIndex == 1, onTap: () => onTap(1)),
+            _BottomNavItem(icon: Icons.local_pharmacy_outlined, label: 'Pharmacy', selected: currentIndex == 2, onTap: () => onTap(2)),
+            _BottomNavItem(icon: Icons.assignment_outlined, label: 'Records', selected: currentIndex == 3, onTap: () => onTap(3)),
+            _BottomNavItem(icon: Icons.account_balance_wallet_outlined, label: 'Wallet', selected: currentIndex == 4, onTap: () => onTap(4)),
           ],
         ),
       ),
@@ -64,12 +39,7 @@ class AppBottomNavBar extends StatelessWidget {
 }
 
 class _BottomNavItem extends StatelessWidget {
-  const _BottomNavItem({
-    required this.icon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
+  const _BottomNavItem({required this.icon, required this.label, required this.selected, required this.onTap});
 
   final IconData icon;
   final String label;
@@ -99,10 +69,7 @@ class _BottomNavItem extends StatelessWidget {
                   curve: AppMotion.standard,
                   height: 34,
                   width: selected ? 50 : 34,
-                  decoration: BoxDecoration(
-                    color: selected ? AppTheme.softTeal : Colors.transparent,
-                    borderRadius: BorderRadius.circular(99),
-                  ),
+                  decoration: BoxDecoration(color: selected ? AppTheme.softTeal : Colors.transparent, borderRadius: BorderRadius.circular(99)),
                   child: Icon(icon, color: color, size: 24),
                 ),
               ),
@@ -110,16 +77,8 @@ class _BottomNavItem extends StatelessWidget {
               AnimatedDefaultTextStyle(
                 duration: AppMotion.fast,
                 curve: AppMotion.standard,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 10.5,
-                  fontWeight: selected ? FontWeight.w900 : FontWeight.w600,
-                ),
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                style: TextStyle(color: color, fontSize: 10.5, fontWeight: selected ? FontWeight.w900 : FontWeight.w600),
+                child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
               ),
             ],
           ),
@@ -128,3 +87,4 @@ class _BottomNavItem extends StatelessWidget {
     );
   }
 }
+

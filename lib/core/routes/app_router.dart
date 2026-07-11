@@ -7,7 +7,9 @@ import '../../features/auth/presentation/controllers/auth_controller.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/doctors/presentation/controllers/doctor_detail_controller.dart';
+import '../../features/doctors/presentation/controllers/find_doctors_controller.dart';
 import '../../features/doctors/presentation/screens/doctor_detail_screen.dart';
+import '../../features/doctors/presentation/screens/find_doctors_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/onboarding/presentation/welcome_screen.dart';
 import '../../features/patient/presentation/screens/patient_home_screen.dart';
@@ -28,6 +30,7 @@ class AppRouter {
     AppRoutes.patientHome,
     AppRoutes.profile,
     AppRoutes.appointments,
+    AppRoutes.findDoctors,
     AppRoutes.doctorDetail,
     AppRoutes.pharmacy,
     AppRoutes.medicalRecords,
@@ -101,6 +104,11 @@ class AppRouter {
           ),
         );
 
+      case AppRoutes.findDoctors:
+        return _smoothRoute(
+          settings: settings,
+          child: FindDoctorsScreen(controller: sl<FindDoctorsController>()),
+        );
       case AppRoutes.doctorDetail:
         final doctorId = _readDoctorId(settings.arguments);
         final patientId = _readAuthenticatedPatientId(authController);

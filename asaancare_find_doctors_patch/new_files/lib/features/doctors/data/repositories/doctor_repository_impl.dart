@@ -18,3 +18,4 @@ class DoctorRepositoryImpl implements DoctorRepository {
     return _mockDataSource.getDoctorDetail(doctorId);
   }
 }
+
