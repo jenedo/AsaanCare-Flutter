@@ -6,6 +6,7 @@ abstract class AppointmentRepository {
     required String patientId,
     required String doctorId,
     required ConsultationType consultationType,
+    required DateTime appointmentDate,
     required String dateLabel,
     required String timeLabel,
     required int totalFee,

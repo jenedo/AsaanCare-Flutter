@@ -4,6 +4,7 @@ import '../../../../core/routes/app_routes.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../controllers/auth_controller.dart';
 import '../widgets/auth_header.dart';
+import '../widgets/social_auth_buttons.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key, required this.authController});
@@ -153,6 +154,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   )
                                 : const Text('Create Account'),
                           ),
+                          const SizedBox(height: 24),
+                          SocialAuthButtons(
+                            enabled: !isLoading,
+                            onProviderSelected: _showSocialAuthMessage,
+                          ),
                           const SizedBox(height: 18),
                           Center(
                             child: TextButton(
@@ -178,6 +184,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         );
       },
+    );
+  }
+
+  void _showSocialAuthMessage(SocialAuthProvider provider) {
+    final name = switch (provider) {
+      SocialAuthProvider.google => 'Google',
+      SocialAuthProvider.github => 'GitHub',
+      SocialAuthProvider.linkedin => 'LinkedIn',
+      SocialAuthProvider.facebook => 'Facebook',
+    };
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$name sign-up will be available soon.')),
     );
   }
 }

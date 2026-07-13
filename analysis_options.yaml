@@ -9,6 +9,12 @@
 # packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  exclude:
+    # This directory is an installable patch bundle, not a standalone package.
+    # Its files intentionally reference dependencies from the main lib/ tree.
+    - asaancare_find_doctors_patch/**
+
 linter:
   # The lint rules applied to this project can be customized in the
   # section below to disable rules from the `package:flutter_lints/flutter.yaml`

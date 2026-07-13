@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 import '../../../../core/layout/app_layout.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/routes/app_routes.dart';
+import '../../../../screens/consultation/audio_call_screen.dart';
+import '../../../../screens/consultation/chat_consultation_screen.dart';
+import '../../../../screens/consultation/video_call_screen.dart';
 import '../../domain/entities/appointment_record.dart';
 import '../../domain/entities/consultation_type.dart';
 import '../controllers/appointment_list_controller.dart';
@@ -21,11 +25,13 @@ class AppointmentsScreen extends StatefulWidget {
 }
 
 class _AppointmentsScreenState extends State<AppointmentsScreen> {
+  static const _primary = Color(0xFF00796B);
+  int _selectedTab = 0;
+
   @override
   void initState() {
     super.initState();
     widget.controller.addListener(_refresh);
-
     Future<void>.microtask(
       () => widget.controller.load(patientId: widget.patientId),
     );
@@ -39,55 +45,72 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
   }
 
   void _refresh() {
-    if (mounted) {
-      setState(() {});
+    if (mounted) setState(() {});
+  }
+
+  void _goBack() {
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+      return;
     }
+    navigator.pushNamedAndRemoveUntil(AppRoutes.patientHome, (route) => false);
   }
 
-  Future<void> _refreshAppointments() {
-    return widget.controller.refresh(widget.patientId);
-  }
-
-  void _showAppointmentDetails(AppointmentRecord appointment) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return _AppointmentDetailsSheet(appointment: appointment);
-      },
-    );
+  List<AppointmentRecord> get _visibleAppointments {
+    return widget.controller.appointments
+        .where((appointment) {
+          return switch (_selectedTab) {
+            0 => appointment.status == AppointmentStatus.confirmed,
+            1 => appointment.status == AppointmentStatus.completed,
+            _ => appointment.status == AppointmentStatus.cancelled,
+          };
+        })
+        .toList(growable: false)
+      ..sort((a, b) => a.appointmentDate.compareTo(b.appointmentDate));
   }
 
   @override
   Widget build(BuildContext context) {
-    final controller = widget.controller;
-
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        backgroundColor: AppTheme.background,
-        appBar: AppBar(
-          title: const Text('My Appointments'),
-          bottom: const TabBar(
-            indicatorColor: AppTheme.primary,
-            indicatorWeight: 3,
-            labelColor: AppTheme.primary,
-            unselectedLabelColor: AppTheme.textMuted,
-            labelStyle: TextStyle(fontWeight: FontWeight.w900),
-            tabs: [
-              Tab(text: 'Upcoming'),
-              Tab(text: 'Previous'),
-            ],
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          onPressed: _goBack,
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.black),
+        ),
+        title: const Text(
+          'My Appointments',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
           ),
         ),
-        body: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: AppLayout.maxMobileContentWidth,
-              ),
-              child: _buildContent(controller),
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(1),
+          child: Divider(height: 1, color: Color(0xFFE7EBEC)),
+        ),
+      ),
+      body: SafeArea(
+        top: false,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: AppLayout.maxMobileContentWidth,
+            ),
+            child: Column(
+              children: [
+                _AppointmentTabs(
+                  selected: _selectedTab,
+                  onSelected: (value) => setState(() => _selectedTab = value),
+                ).animate().fadeIn(duration: 300.ms),
+                Expanded(child: _buildContent()),
+              ],
             ),
           ),
         ),
@@ -95,456 +118,276 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     );
   }
 
-  Widget _buildContent(AppointmentListController controller) {
+  Widget _buildContent() {
+    final controller = widget.controller;
     if ((controller.isInitial || controller.isLoading) &&
         controller.appointments.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator(color: _primary));
     }
-
     if (controller.hasError && controller.appointments.isEmpty) {
-      return _ErrorState(
-        message:
-            controller.errorMessage ??
-            'Could not load appointments. Please try again.',
-        onRetry: () =>
+      return _MessageState(
+        icon: Icons.cloud_off_outlined,
+        title: controller.errorMessage ?? 'Could not load appointments.',
+        actionLabel: 'Try again',
+        onAction: () =>
             controller.load(patientId: widget.patientId, forceRefresh: true),
       );
     }
 
-    if (controller.isEmpty) {
-      return _EmptyAppointmentsState(onRefresh: _refreshAppointments);
-    }
-
-    return TabBarView(
-      children: [
-        _AppointmentList(
-          appointments: controller.upcomingAppointments,
-          emptyIcon: Icons.event_available_outlined,
-          emptyTitle: 'No upcoming appointments',
-          emptyMessage:
-              'Appointments you book will appear here with their confirmed date and time.',
-          onRefresh: _refreshAppointments,
-          onAppointmentTap: _showAppointmentDetails,
-        ),
-        _AppointmentList(
-          appointments: controller.historyAppointments,
-          emptyIcon: Icons.history_rounded,
-          emptyTitle: 'No previous appointments',
-          emptyMessage:
-              'Completed and cancelled consultations will appear here.',
-          onRefresh: _refreshAppointments,
-          onAppointmentTap: _showAppointmentDetails,
-        ),
-      ],
+    final appointments = _visibleAppointments;
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 250),
+      child: appointments.isEmpty
+          ? const _MessageState(
+              key: ValueKey('empty'),
+              icon: Icons.calendar_today_outlined,
+              title: 'No appointments yet',
+              subtitle: 'Book your first appointment',
+            )
+          : RefreshIndicator(
+              key: ValueKey(_selectedTab),
+              color: _primary,
+              onRefresh: () => controller.refresh(widget.patientId),
+              child: _GroupedAppointmentList(appointments: appointments),
+            ),
     );
   }
 }
 
-class _AppointmentList extends StatelessWidget {
-  const _AppointmentList({
-    required this.appointments,
-    required this.emptyIcon,
-    required this.emptyTitle,
-    required this.emptyMessage,
-    required this.onRefresh,
-    required this.onAppointmentTap,
-  });
+class _AppointmentTabs extends StatelessWidget {
+  const _AppointmentTabs({required this.selected, required this.onSelected});
 
-  final List<AppointmentRecord> appointments;
-  final IconData emptyIcon;
-  final String emptyTitle;
-  final String emptyMessage;
-  final Future<void> Function() onRefresh;
-  final ValueChanged<AppointmentRecord> onAppointmentTap;
+  final int selected;
+  final ValueChanged<int> onSelected;
 
   @override
   Widget build(BuildContext context) {
-    if (appointments.isEmpty) {
-      return RefreshIndicator(
-        onRefresh: onRefresh,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(24, 80, 24, 32),
-          children: [
-            _TabEmptyState(
-              icon: emptyIcon,
-              title: emptyTitle,
-              message: emptyMessage,
-            ),
-          ],
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: onRefresh,
-      child: ListView.separated(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.fromLTRB(
-          AppLayout.horizontalPadding(context),
-          20,
-          AppLayout.horizontalPadding(context),
-          32,
-        ),
-        itemCount: appointments.length,
-        separatorBuilder: (context, index) => const SizedBox(height: 14),
-        itemBuilder: (context, index) {
-          final appointment = appointments[index];
-
-          return _AppointmentCard(
-            appointment: appointment,
-            onTap: () => onAppointmentTap(appointment),
-          );
-        },
+    const labels = ['Upcoming', 'Completed', 'Cancelled'];
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F2F2),
+        borderRadius: BorderRadius.circular(24),
       ),
+      child: Row(
+        children: List.generate(labels.length, (index) {
+          final active = index == selected;
+          return Expanded(
+            child: InkWell(
+              onTap: () => onSelected(index),
+              borderRadius: BorderRadius.circular(20),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 9),
+                decoration: BoxDecoration(
+                  color: active ? const Color(0xFF00796B) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  labels[index],
+                  style: TextStyle(
+                    color: active ? Colors.white : const Color(0xFF7E898C),
+                    fontSize: 12,
+                    fontWeight: active ? FontWeight.bold : FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+}
+
+class _GroupedAppointmentList extends StatelessWidget {
+  const _GroupedAppointmentList({required this.appointments});
+
+  final List<AppointmentRecord> appointments;
+
+  @override
+  Widget build(BuildContext context) {
+    final groups = <DateTime, List<AppointmentRecord>>{};
+    for (final appointment in appointments) {
+      final date = appointment.appointmentDate;
+      final day = DateTime(date.year, date.month, date.day);
+      groups.putIfAbsent(day, () => []).add(appointment);
+    }
+    final dates = groups.keys.toList()..sort();
+    var animationIndex = 0;
+
+    return ListView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.only(bottom: 18),
+      itemCount: dates.length,
+      itemBuilder: (context, groupIndex) {
+        final date = dates[groupIndex];
+        final items = groups[date]!;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 7),
+              child: Text(
+                _dateHeader(date),
+                style: const TextStyle(
+                  color: Color(0xFF697578),
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            ...items.map((appointment) {
+              final delay = animationIndex++ * 100;
+              return _AppointmentCard(
+                    appointment: appointment,
+                    onJoin: _canJoinRemoteCall(appointment)
+                        ? () => _openRemoteCall(context, appointment)
+                        : null,
+                  )
+                  .animate(delay: delay.ms)
+                  .fadeIn(duration: 300.ms)
+                  .slideY(begin: .1, end: 0);
+            }),
+          ],
+        );
+      },
     );
   }
 }
 
 class _AppointmentCard extends StatelessWidget {
-  const _AppointmentCard({required this.appointment, required this.onTap});
+  const _AppointmentCard({required this.appointment, this.onJoin});
 
   final AppointmentRecord appointment;
-  final VoidCallback onTap;
+  final VoidCallback? onJoin;
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = _statusColor(appointment.status);
-
-    return Material(
-      color: AppTheme.surface,
-      borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            border: Border.all(color: AppTheme.border),
-            borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _DoctorImage(imageAsset: appointment.doctorImageAsset),
-                  const SizedBox(width: 13),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          appointment.doctorName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppTheme.textDark,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          appointment.doctorSpecialty,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppTheme.textMuted,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  _StatusBadge(
-                    label: appointment.status.title,
-                    color: statusColor,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              const Divider(height: 1, color: AppTheme.border),
-              const SizedBox(height: 14),
-              Wrap(
-                spacing: 14,
-                runSpacing: 10,
-                children: [
-                  _AppointmentMeta(
-                    icon: Icons.calendar_month_outlined,
-                    label: appointment.dateLabel,
-                  ),
-                  _AppointmentMeta(
-                    icon: Icons.schedule_rounded,
-                    label: appointment.timeLabel,
-                  ),
-                  _AppointmentMeta(
-                    icon: appointment.consultationType == ConsultationType.video
-                        ? Icons.videocam_outlined
-                        : Icons.call_outlined,
-                    label: appointment.consultationType.title,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Text(
-                    'Rs. ${appointment.totalFee}',
-                    style: const TextStyle(
-                      color: AppTheme.textDark,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const Spacer(),
-                  TextButton.icon(
-                    onPressed: onTap,
-                    icon: const Icon(Icons.visibility_outlined, size: 19),
-                    label: const Text('View details'),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DoctorImage extends StatelessWidget {
-  const _DoctorImage({required this.imageAsset});
-
-  final String imageAsset;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        width: 64,
-        height: 64,
-        color: AppTheme.softTeal,
-        child: Image.asset(
-          imageAsset,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            return const Icon(
-              Icons.person_rounded,
-              color: AppTheme.primary,
-              size: 34,
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
-
-class _StatusBadge extends StatelessWidget {
-  const _StatusBadge({required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
+    final status = _cardStatus(appointment);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      constraints: const BoxConstraints(minHeight: 138),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.w900,
-        ),
-      ),
-    );
-  }
-}
-
-class _AppointmentMeta extends StatelessWidget {
-  const _AppointmentMeta({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 18, color: AppTheme.primary),
-        const SizedBox(width: 6),
-        Text(
-          label,
-          style: const TextStyle(
-            color: AppTheme.textMuted,
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE7EEEE)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0D000000),
+            blurRadius: 14,
+            offset: Offset(0, 4),
           ),
-        ),
-      ],
-    );
-  }
-}
-
-class _AppointmentDetailsSheet extends StatelessWidget {
-  const _AppointmentDetailsSheet({required this.appointment});
-
-  final AppointmentRecord appointment;
-
-  @override
-  Widget build(BuildContext context) {
-    final statusColor = _statusColor(appointment.status);
-
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppTheme.radiusXLarge),
-        ),
+        ],
       ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(22, 12, 22, 26),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 44,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: AppTheme.border,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  _DoctorImage(imageAsset: appointment.doctorImageAsset),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          appointment.doctorName,
-                          style: const TextStyle(
-                            color: AppTheme.textDark,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          appointment.doctorSpecialty,
-                          style: const TextStyle(
-                            color: AppTheme.textMuted,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  _StatusBadge(
-                    label: appointment.status.title,
-                    color: statusColor,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 22),
-              _DetailRow(
-                icon: Icons.calendar_month_outlined,
-                title: 'Date',
-                value: appointment.dateLabel,
-              ),
-              _DetailRow(
-                icon: Icons.schedule_rounded,
-                title: 'Time',
-                value: appointment.timeLabel,
-              ),
-              _DetailRow(
-                icon: appointment.consultationType == ConsultationType.video
-                    ? Icons.videocam_outlined
-                    : Icons.call_outlined,
-                title: 'Consultation',
-                value: appointment.consultationType.title,
-              ),
-              _DetailRow(
-                icon: Icons.payments_outlined,
-                title: 'Consultation fee',
-                value: 'Rs. ${appointment.totalFee}',
-              ),
-              const SizedBox(height: 14),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Done'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({
-    required this.icon,
-    required this.title,
-    required this.value,
-  });
-
-  final IconData icon;
-  final String title;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 9),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          SizedBox(
+            width: 68,
+            child: Text(
+              appointment.timeLabel,
+              style: const TextStyle(
+                color: Colors.black87,
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
           Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: AppTheme.softTeal,
-              borderRadius: BorderRadius.circular(13),
-            ),
-            child: Icon(icon, color: AppTheme.primary),
+            width: 1,
+            height: 92,
+            margin: const EdgeInsets.only(right: 16),
+            color: const Color(0xFFE6EBEC),
           ),
-          const SizedBox(width: 12),
+          CircleAvatar(
+            radius: 30,
+            backgroundColor: const Color(0xFFE0F2F1),
+            backgroundImage: appointment.doctorImageAsset.isEmpty
+                ? null
+                : AssetImage(appointment.doctorImageAsset),
+            child: appointment.doctorImageAsset.isEmpty
+                ? const Icon(Icons.person, color: Color(0xFF00796B), size: 30)
+                : null,
+          ),
+          const SizedBox(width: 14),
           Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(
-                color: AppTheme.textMuted,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: const TextStyle(
-                color: AppTheme.textDark,
-                fontWeight: FontWeight.w900,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  appointment.doctorName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  appointment.doctorSpecialty,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF899497),
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 7),
+                Row(
+                  children: [
+                    Icon(
+                      _consultationIcon(appointment.consultationType),
+                      size: 15,
+                      color: const Color(0xFF9AA4A7),
+                    ),
+                    const SizedBox(width: 5),
+                    Flexible(
+                      child: Text(
+                        appointment.consultationType.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF9AA4A7),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [_StatusBadge(status: status, onTap: onJoin)],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    const Text(
+                      'Appointment ID  •  ',
+                      style: TextStyle(color: Color(0xFFABB3B5), fontSize: 9.5),
+                    ),
+                    Flexible(
+                      child: Text(
+                        appointment.id,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF727E81),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: .2,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],
@@ -553,11 +396,69 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-class _ErrorState extends StatelessWidget {
-  const _ErrorState({required this.message, required this.onRetry});
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({required this.status, this.onTap});
 
-  final String message;
-  final VoidCallback onRetry;
+  final _VisualStatus status;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, background, foreground) = switch (status) {
+      _VisualStatus.join => ('Join', const Color(0xFF00796B), Colors.white),
+      _VisualStatus.upcoming => (
+        'Upcoming',
+        const Color(0xFFE0F2F1),
+        const Color(0xFF00796B),
+      ),
+      _VisualStatus.completed => (
+        'Completed',
+        const Color(0xFFEEF1F1),
+        const Color(0xFF6F7B7E),
+      ),
+      _VisualStatus.cancelled => (
+        'Cancelled',
+        const Color(0xFFFFEBEE),
+        const Color(0xFFC62828),
+      ),
+    };
+    return Material(
+      color: background,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: status == _VisualStatus.join ? onTap : null,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: foreground,
+              fontSize: 10.5,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MessageState extends StatelessWidget {
+  const _MessageState({
+    super.key,
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
@@ -567,29 +468,29 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.error_outline_rounded,
-              size: 54,
-              color: AppTheme.danger,
-            ),
-            const SizedBox(height: 14),
-            const Text(
-              'Appointments unavailable',
+            Icon(icon, size: 64, color: const Color(0xFFD1D7D8)),
+            const SizedBox(height: 16),
+            Text(
+              title,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppTheme.textDark,
-                fontSize: 19,
-                fontWeight: FontWeight.w900,
+              style: const TextStyle(
+                color: Color(0xFFA0AAAC),
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: AppTheme.textMuted, height: 1.4),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(onPressed: onRetry, child: const Text('Try again')),
+            if (subtitle != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                subtitle!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFFA0AAAC), fontSize: 13),
+              ),
+            ],
+            if (onAction != null) ...[
+              const SizedBox(height: 16),
+              FilledButton(onPressed: onAction, child: Text(actionLabel!)),
+            ],
           ],
         ),
       ),
@@ -597,80 +498,108 @@ class _ErrorState extends StatelessWidget {
   }
 }
 
-class _EmptyAppointmentsState extends StatelessWidget {
-  const _EmptyAppointmentsState({required this.onRefresh});
+enum _VisualStatus { join, upcoming, completed, cancelled }
 
-  final Future<void> Function() onRefresh;
-
-  @override
-  Widget build(BuildContext context) {
-    return RefreshIndicator(
-      onRefresh: onRefresh,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(26, 90, 26, 32),
-        children: const [
-          _TabEmptyState(
-            icon: Icons.calendar_month_outlined,
-            title: 'No appointments yet',
-            message:
-                'Book a consultation with a doctor and it will appear here.',
-          ),
-        ],
-      ),
-    );
+_VisualStatus _cardStatus(AppointmentRecord appointment) {
+  if (appointment.status == AppointmentStatus.completed) {
+    return _VisualStatus.completed;
   }
+  if (appointment.status == AppointmentStatus.cancelled) {
+    return _VisualStatus.cancelled;
+  }
+  return _canJoinRemoteCall(appointment)
+      ? _VisualStatus.join
+      : _VisualStatus.upcoming;
 }
 
-class _TabEmptyState extends StatelessWidget {
-  const _TabEmptyState({
-    required this.icon,
-    required this.title,
-    required this.message,
-  });
-
-  final IconData icon;
-  final String title;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: 82,
-          height: 82,
-          decoration: const BoxDecoration(
-            color: AppTheme.softTeal,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, size: 40, color: AppTheme.primary),
-        ),
-        const SizedBox(height: 18),
-        Text(
-          title,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: AppTheme.textDark,
-            fontSize: 19,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          message,
-          textAlign: TextAlign.center,
-          style: const TextStyle(color: AppTheme.textMuted, height: 1.45),
-        ),
-      ],
-    );
+bool _canJoinRemoteCall(AppointmentRecord appointment) {
+  if (appointment.status != AppointmentStatus.confirmed ||
+      (appointment.consultationType != ConsultationType.video &&
+          appointment.consultationType != ConsultationType.audio &&
+          appointment.consultationType != ConsultationType.chat)) {
+    return false;
   }
+  final start = _appointmentStart(appointment);
+  if (start == null) return false;
+  final now = DateTime.now();
+  return !now.isBefore(start.subtract(const Duration(minutes: 5))) &&
+      now.isBefore(start.add(const Duration(hours: 1)));
 }
 
-Color _statusColor(AppointmentStatus status) {
-  return switch (status) {
-    AppointmentStatus.confirmed => AppTheme.success,
-    AppointmentStatus.completed => AppTheme.primary,
-    AppointmentStatus.cancelled => AppTheme.danger,
+Future<void> _openRemoteCall(
+  BuildContext context,
+  AppointmentRecord appointment,
+) {
+  final Widget screen;
+  if (appointment.consultationType == ConsultationType.audio) {
+    screen = AudioCallScreen(
+      doctorName: appointment.doctorName,
+      doctorSpecialty: appointment.doctorSpecialty,
+      doctorImageAsset: appointment.doctorImageAsset,
+      appointmentDate: appointment.appointmentDate,
+      appointmentTime: appointment.timeLabel,
+    );
+  } else if (appointment.consultationType == ConsultationType.chat) {
+    screen = ChatConsultationScreen(
+      doctorName: appointment.doctorName,
+      doctorSpecialty: appointment.doctorSpecialty,
+      doctorImageAsset: appointment.doctorImageAsset,
+      appointmentDate: appointment.appointmentDate,
+      appointmentTime: appointment.timeLabel,
+    );
+  } else {
+    screen = VideoCallScreen(
+      doctorName: appointment.doctorName,
+      doctorImageAsset: appointment.doctorImageAsset,
+    );
+  }
+  return Navigator.of(
+    context,
+  ).push(MaterialPageRoute<void>(builder: (_) => screen));
+}
+
+DateTime? _appointmentStart(AppointmentRecord appointment) {
+  final match = RegExp(
+    r'^(\d{1,2}):(\d{2})\s*(AM|PM)$',
+    caseSensitive: false,
+  ).firstMatch(appointment.timeLabel.trim());
+  if (match == null) return null;
+  var hour = int.parse(match.group(1)!);
+  final minute = int.parse(match.group(2)!);
+  final period = match.group(3)!.toUpperCase();
+  if (period == 'PM' && hour != 12) hour += 12;
+  if (period == 'AM' && hour == 12) hour = 0;
+  final date = appointment.appointmentDate;
+  return DateTime(date.year, date.month, date.day, hour, minute);
+}
+
+IconData _consultationIcon(ConsultationType type) {
+  return switch (type) {
+    ConsultationType.video => Icons.videocam_outlined,
+    ConsultationType.audio => Icons.call_outlined,
+    ConsultationType.chat => Icons.chat_bubble_outline_rounded,
+    ConsultationType.clinic => Icons.local_hospital_outlined,
   };
+}
+
+String _dateHeader(DateTime date) {
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  final now = DateTime.now();
+  final today =
+      date.year == now.year && date.month == now.month && date.day == now.day;
+  final value = '${date.day} ${months[date.month - 1]} ${date.year}';
+  return today ? 'Today, $value' : value;
 }

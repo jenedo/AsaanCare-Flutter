@@ -154,17 +154,25 @@ class ApiClient {
   String? _readMessage(Object? decoded) {
     if (decoded is! Map) return null;
 
-    final direct = decoded['message'] ?? decoded['error'];
-    if (direct is String && direct.trim().isNotEmpty) {
-      return direct.trim();
-    }
+    final direct =
+        _messageFrom(decoded['message']) ?? _messageFrom(decoded['error']);
+    if (direct != null) return direct;
 
     final data = decoded['data'];
     if (data is Map) {
-      final nested = data['message'] ?? data['error'];
-      if (nested is String && nested.trim().isNotEmpty) {
-        return nested.trim();
-      }
+      return _messageFrom(data['message']) ?? _messageFrom(data['error']);
+    }
+
+    return null;
+  }
+
+  String? _messageFrom(Object? value) {
+    if (value is String && value.trim().isNotEmpty) {
+      return value.trim();
+    }
+
+    if (value is Map) {
+      return _messageFrom(value['message']) ?? _messageFrom(value['error']);
     }
 
     return null;

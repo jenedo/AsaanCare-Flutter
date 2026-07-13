@@ -6,10 +6,11 @@ import '../../domain/usecases/get_doctors.dart';
 enum DoctorSort { recommended, ratingHigh, feeLow }
 
 class FindDoctorsController extends ChangeNotifier {
-  FindDoctorsController({required GetDoctors getDoctors})
-    : _getDoctors = getDoctors;
+  FindDoctorsController({required this._getDoctors})
+    : bookingDates = List.unmodifiable(_upcomingDates(DateTime.now()));
 
   final GetDoctors _getDoctors;
+  final List<DateTime> bookingDates;
 
   List<Doctor> _doctors = const [];
   String _query = '';
@@ -36,7 +37,10 @@ class FindDoctorsController extends ChangeNotifier {
           normalizedQuery.isEmpty ||
           doctor.name.toLowerCase().contains(normalizedQuery) ||
           doctor.specialty.toLowerCase().contains(normalizedQuery) ||
-          doctor.qualification.toLowerCase().contains(normalizedQuery);
+          doctor.qualification.toLowerCase().contains(normalizedQuery) ||
+          _conditionKeywords(
+            doctor.specialty,
+          ).any((keyword) => keyword.contains(normalizedQuery));
       final matchesSpecialty =
           _specialty == null || doctor.specialty == _specialty;
       return matchesQuery && matchesSpecialty;
@@ -95,4 +99,47 @@ class FindDoctorsController extends ChangeNotifier {
     _sort = value;
     notifyListeners();
   }
+}
+
+Iterable<String> _conditionKeywords(String specialty) {
+  return switch (specialty.toLowerCase()) {
+    'psychiatrist' => const [
+      'anxiety',
+      'depression',
+      'stress',
+      'sleep',
+      'mental health',
+      'psychologist',
+    ],
+    'cardiologist' => const [
+      'heart',
+      'chest pain',
+      'blood pressure',
+      'hypertension',
+    ],
+    'dermatologist' => const ['skin', 'acne', 'rash', 'hair', 'allergy'],
+    'general physician' => const [
+      'fever',
+      'flu',
+      'cough',
+      'infection',
+      'general doctor',
+    ],
+    'pediatrician' => const ['child', 'children', 'baby', 'vaccination'],
+    'gynecologist' => const [
+      'pregnancy',
+      'women health',
+      'period',
+      'fertility',
+    ],
+    'dentist' => const ['tooth', 'teeth', 'dental', 'gum'],
+    _ => const <String>[],
+  };
+}
+
+List<DateTime> _upcomingDates(DateTime now) {
+  return List.generate(
+    6,
+    (index) => DateTime(now.year, now.month, now.day + index),
+  );
 }

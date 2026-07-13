@@ -5,6 +5,7 @@ import '../../domain/exceptions/appointment_exception.dart';
 class AppointmentMockDataSource {
   AppointmentMockDataSource()
     : _appointments = [
+        ..._joinableTestAppointments(),
         AppointmentRecord(
           id: 'appointment_upcoming_001',
           patientId: mockPatientId,
@@ -13,6 +14,7 @@ class AppointmentMockDataSource {
           doctorSpecialty: 'General Physician',
           doctorImageAsset: 'assets/images/doctor_sara.png',
           consultationType: ConsultationType.video,
+          appointmentDate: DateTime(2026, 7, 11),
           dateLabel: 'Sat 11 Jul',
           timeLabel: '10:00 AM',
           totalFee: 800,
@@ -27,6 +29,7 @@ class AppointmentMockDataSource {
           doctorSpecialty: 'Cardiologist',
           doctorImageAsset: 'assets/images/doctor_ali.png',
           consultationType: ConsultationType.video,
+          appointmentDate: DateTime(2026, 6, 29),
           dateLabel: 'Mon 29 Jun',
           timeLabel: '04:00 PM',
           totalFee: 800,
@@ -41,6 +44,7 @@ class AppointmentMockDataSource {
           doctorSpecialty: 'Gynecologist',
           doctorImageAsset: 'assets/images/doctor_maheen.png',
           consultationType: ConsultationType.audio,
+          appointmentDate: DateTime(2026, 6, 16),
           dateLabel: 'Tue 16 Jun',
           timeLabel: '01:00 PM',
           totalFee: 800,
@@ -75,6 +79,7 @@ class AppointmentMockDataSource {
     required String patientId,
     required String doctorId,
     required ConsultationType consultationType,
+    required DateTime appointmentDate,
     required String dateLabel,
     required String timeLabel,
     required int totalFee,
@@ -108,19 +113,21 @@ class AppointmentMockDataSource {
           imageAsset: 'assets/images/doctor_appointment.png',
         );
 
+    final createdAt = DateTime.now();
     final appointment = AppointmentRecord(
-      id: 'appointment_${DateTime.now().microsecondsSinceEpoch}',
+      id: _appointmentId(appointmentDate, createdAt),
       patientId: cleanPatientId,
       doctorId: cleanDoctorId,
       doctorName: doctor.name,
       doctorSpecialty: doctor.specialty,
       doctorImageAsset: doctor.imageAsset,
       consultationType: consultationType,
+      appointmentDate: appointmentDate,
       dateLabel: dateLabel.trim(),
       timeLabel: timeLabel.trim(),
       totalFee: totalFee,
       status: AppointmentStatus.confirmed,
-      createdAt: DateTime.now(),
+      createdAt: createdAt,
     );
 
     _appointments.insert(0, appointment);
@@ -146,6 +153,100 @@ class AppointmentMockDataSource {
 
     return List<AppointmentRecord>.unmodifiable(result);
   }
+}
+
+List<AppointmentRecord> _joinableTestAppointments() {
+  final now = DateTime.now();
+  final appointmentDate = DateTime(now.year, now.month, now.day);
+  final timeLabel = _timeLabel(now);
+  final dateLabel = _dateLabel(appointmentDate);
+
+  return [
+    AppointmentRecord(
+      id: 'AC-TEST-VIDEO',
+      patientId: AppointmentMockDataSource.mockPatientId,
+      doctorId: 'doctor_sara',
+      doctorName: 'Dr. Sara Khan',
+      doctorSpecialty: 'General Physician',
+      doctorImageAsset: 'assets/images/doctor_sara.png',
+      consultationType: ConsultationType.video,
+      appointmentDate: appointmentDate,
+      dateLabel: dateLabel,
+      timeLabel: timeLabel,
+      totalFee: 800,
+      status: AppointmentStatus.confirmed,
+      createdAt: now,
+    ),
+    AppointmentRecord(
+      id: 'AC-TEST-AUDIO',
+      patientId: AppointmentMockDataSource.mockPatientId,
+      doctorId: 'doctor_ali',
+      doctorName: 'Dr. Ali Raza',
+      doctorSpecialty: 'Cardiologist',
+      doctorImageAsset: 'assets/images/doctor_ali.png',
+      consultationType: ConsultationType.audio,
+      appointmentDate: appointmentDate,
+      dateLabel: dateLabel,
+      timeLabel: timeLabel,
+      totalFee: 1000,
+      status: AppointmentStatus.confirmed,
+      createdAt: now.subtract(const Duration(seconds: 1)),
+    ),
+    AppointmentRecord(
+      id: 'AC-TEST-CHAT',
+      patientId: AppointmentMockDataSource.mockPatientId,
+      doctorId: 'doctor_maheen',
+      doctorName: 'Dr. Maheen Fatima',
+      doctorSpecialty: 'Gynecologist',
+      doctorImageAsset: 'assets/images/doctor_maheen.png',
+      consultationType: ConsultationType.chat,
+      appointmentDate: appointmentDate,
+      dateLabel: dateLabel,
+      timeLabel: timeLabel,
+      totalFee: 900,
+      status: AppointmentStatus.confirmed,
+      createdAt: now.subtract(const Duration(seconds: 2)),
+    ),
+  ];
+}
+
+String _timeLabel(DateTime dateTime) {
+  final hour = dateTime.hour == 0
+      ? 12
+      : dateTime.hour > 12
+      ? dateTime.hour - 12
+      : dateTime.hour;
+  final minute = dateTime.minute.toString().padLeft(2, '0');
+  final period = dateTime.hour >= 12 ? 'PM' : 'AM';
+  return '$hour:$minute $period';
+}
+
+String _dateLabel(DateTime date) {
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+  return '${date.day} ${months[date.month - 1]} ${date.year}';
+}
+
+String _appointmentId(DateTime appointmentDate, DateTime createdAt) {
+  final year = (appointmentDate.year % 100).toString().padLeft(2, '0');
+  final month = appointmentDate.month.toString().padLeft(2, '0');
+  final day = appointmentDate.day.toString().padLeft(2, '0');
+  final sequence = (createdAt.microsecondsSinceEpoch % 10000)
+      .toString()
+      .padLeft(4, '0');
+  return 'AC-$year$month$day-$sequence';
 }
 
 class _MockDoctorSummary {

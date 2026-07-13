@@ -279,35 +279,41 @@ class _WalletScreenState extends State<WalletScreen> {
           const SizedBox(height: 26),
           const _SectionTitle(title: 'Quick Actions'),
           const SizedBox(height: 12),
-          GridView.count(
-            crossAxisCount: 4,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-            childAspectRatio: 0.82,
-            children: [
-              _QuickAction(
-                icon: Icons.add_card_rounded,
-                label: 'Add\nMoney',
-                onTap: _openAddMoney,
-              ),
-              _QuickAction(
-                icon: Icons.receipt_long_outlined,
-                label: 'Transaction\nHistory',
-                onTap: _openTransactions,
-              ),
-              _QuickAction(
-                icon: Icons.credit_card_rounded,
-                label: 'Payment\nMethods',
-                onTap: _openPaymentMethods,
-              ),
-              _QuickAction(
-                icon: Icons.help_outline_rounded,
-                label: 'Wallet\nHelp',
-                onTap: _showHelp,
-              ),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 350;
+
+              return GridView.count(
+                crossAxisCount: compact ? 2 : 4,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: 10,
+                crossAxisSpacing: 10,
+                childAspectRatio: compact ? 1.65 : 0.82,
+                children: [
+                  _QuickAction(
+                    icon: Icons.add_card_rounded,
+                    label: 'Add\nMoney',
+                    onTap: _openAddMoney,
+                  ),
+                  _QuickAction(
+                    icon: Icons.receipt_long_outlined,
+                    label: 'Transaction\nHistory',
+                    onTap: _openTransactions,
+                  ),
+                  _QuickAction(
+                    icon: Icons.credit_card_rounded,
+                    label: 'Payment\nMethods',
+                    onTap: _openPaymentMethods,
+                  ),
+                  _QuickAction(
+                    icon: Icons.help_outline_rounded,
+                    label: 'Wallet\nHelp',
+                    onTap: _showHelp,
+                  ),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 28),
           _SectionHeader(
@@ -414,12 +420,13 @@ class _QuickAction extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 8),
           decoration: BoxDecoration(
             border: Border.all(color: AppTheme.border),
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
@@ -431,16 +438,19 @@ class _QuickAction extends StatelessWidget {
                 ),
                 child: Icon(icon, color: AppTheme.primary),
               ),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                style: const TextStyle(
-                  color: AppTheme.textDark,
-                  fontSize: 11,
-                  height: 1.2,
-                  fontWeight: FontWeight.w800,
+              const SizedBox(height: 4),
+              Flexible(
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppTheme.textDark,
+                    fontSize: 11,
+                    height: 1.2,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
             ],

@@ -3,10 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../../core/layout/app_layout.dart';
 import '../../../../core/routes/app_routes.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/widgets/app_bottom_nav_bar.dart';
 import '../../domain/entities/medicine.dart';
 import '../controllers/pharmacy_controller.dart';
-import '../widgets/medicine_card.dart';
+import '../widgets/medicine_visual.dart';
 import 'cart_screen.dart';
 import 'medicine_detail_screen.dart';
 import 'medicine_search_screen.dart';
@@ -42,15 +41,13 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
   void _showMessage(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(behavior: SnackBarBehavior.floating, content: Text(message)),
-      );
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _openSearch({MedicineCategory? category}) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (context) => MedicineSearchScreen(
+        builder: (_) => MedicineSearchScreen(
           controller: widget.controller,
           initialCategory: category,
         ),
@@ -61,7 +58,7 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
   void _openMedicine(Medicine medicine) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (context) => MedicineDetailScreen(
+        builder: (_) => MedicineDetailScreen(
           controller: widget.controller,
           medicine: medicine,
         ),
@@ -72,7 +69,7 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
   void _openCart() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (context) => CartScreen(controller: widget.controller),
+        builder: (_) => CartScreen(controller: widget.controller),
       ),
     );
   }
@@ -80,8 +77,7 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
   void _openTracking() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (context) =>
-            OrderTrackingScreen(controller: widget.controller),
+        builder: (_) => OrderTrackingScreen(controller: widget.controller),
       ),
     );
   }
@@ -90,20 +86,16 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
     switch (index) {
       case 0:
         Navigator.of(context).pushReplacementNamed(AppRoutes.patientHome);
-        return;
       case 1:
         Navigator.of(
           context,
         ).pushNamed(AppRoutes.doctorDetail, arguments: 'doctor_ali');
-        return;
       case 2:
         return;
       case 3:
         Navigator.of(context).pushNamed(AppRoutes.medicalRecords);
-        return;
       case 4:
         Navigator.of(context).pushReplacementNamed(AppRoutes.wallet);
-        return;
     }
   }
 
@@ -118,61 +110,53 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
       'Hyderabad',
       'Peshawar',
     ];
-
     final selected = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
-      builder: (sheetContext) {
-        return SafeArea(
-          child: ListView(
-            shrinkWrap: true,
-            padding: const EdgeInsets.fromLTRB(18, 0, 18, 22),
-            children: [
-              const Text(
-                'Select delivery city',
-                style: TextStyle(
-                  color: Color(0xFF07132D),
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                ),
+      builder: (sheetContext) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(18, 0, 18, 22),
+          children: [
+            const Text(
+              'Select delivery city',
+              style: TextStyle(
+                color: AppTheme.textDark,
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
               ),
-              const SizedBox(height: 10),
-              for (final city in cities)
-                ListTile(
-                  leading: const Icon(
-                    Icons.location_on_outlined,
-                    color: AppTheme.primary,
-                  ),
-                  title: Text(city),
-                  trailing: city == widget.controller.selectedCity
-                      ? const Icon(
-                          Icons.check_circle_rounded,
-                          color: AppTheme.primary,
-                        )
-                      : null,
-                  onTap: () => Navigator.of(sheetContext).pop(city),
+            ),
+            const SizedBox(height: 8),
+            for (final city in cities)
+              ListTile(
+                leading: const Icon(
+                  Icons.location_on_outlined,
+                  color: AppTheme.primary,
                 ),
-            ],
-          ),
-        );
-      },
+                title: Text(city),
+                trailing: city == widget.controller.selectedCity
+                    ? const Icon(
+                        Icons.check_circle_rounded,
+                        color: AppTheme.primary,
+                      )
+                    : null,
+                onTap: () => Navigator.of(sheetContext).pop(city),
+              ),
+          ],
+        ),
+      ),
     );
-
-    if (selected == null || !mounted) return;
-    widget.controller.selectCity(selected);
+    if (selected != null && mounted) widget.controller.selectCity(selected);
   }
 
   @override
   Widget build(BuildContext context) {
     final controller = widget.controller;
-    final popular = controller.medicines.take(8).toList(growable: false);
+    final featured = controller.medicines.take(6).toList(growable: false);
 
     return Scaffold(
-      backgroundColor: AppTheme.surface,
-      bottomNavigationBar: AppBottomNavBar(
-        currentIndex: 2,
-        onTap: _handleNavTap,
-      ),
+      backgroundColor: const Color(0xFFF8FBFA),
+      bottomNavigationBar: _PharmacyNav(onTap: _handleNavTap),
       body: SafeArea(
         bottom: false,
         child: Center(
@@ -183,15 +167,10 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
             child: RefreshIndicator(
               onRefresh: controller.refresh,
               child: controller.isLoading && controller.medicines.isEmpty
-                  ? const _LoadingView()
+                  ? const Center(child: CircularProgressIndicator())
                   : ListView(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      padding: EdgeInsets.fromLTRB(
-                        AppLayout.horizontalPadding(context),
-                        14,
-                        AppLayout.horizontalPadding(context),
-                        26,
-                      ),
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
                       children: [
                         _Header(
                           city: controller.selectedCity,
@@ -201,71 +180,55 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
                           onCartTap: _openCart,
                           onOrderTap: _openTracking,
                         ),
-                        const SizedBox(height: 18),
+                        const SizedBox(height: 14),
                         _SearchBox(onTap: _openSearch),
                         if (controller.hasError) ...[
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 10),
                           _ErrorBanner(
                             message:
                                 controller.errorMessage ??
-                                'Failed to load pharmacy.',
+                                'We could not load the pharmacy.',
                             onRetry: controller.refresh,
                           ),
                         ],
-                        const SizedBox(height: 18),
-                        _HeroBanner(onOrderTap: _openSearch),
-                        const SizedBox(height: 18),
+                        const SizedBox(height: 14),
+                        _HeroBanner(onTap: _openSearch),
+                        const SizedBox(height: 14),
                         _QuickActions(
-                          onUploadPrescription: () {
-                            Navigator.of(
-                              context,
-                            ).pushNamed(AppRoutes.medicalRecords);
-                          },
+                          onUpload: () => Navigator.of(
+                            context,
+                          ).pushNamed(AppRoutes.medicalRecords),
                           onQuickOrder: _openSearch,
-                          onReminder: () {
-                            _showMessage(
-                              'Medicine reminders will connect to notifications.',
-                            );
-                          },
+                          onReminder: () => _showMessage(
+                            'Medicine reminders will connect to notifications.',
+                          ),
                           onOffers: _openSearch,
                         ),
-                        const SizedBox(height: 24),
-                        _SectionHeader(
-                          title: 'Shop by Category',
-                          onViewAll: _openSearch,
-                        ),
+                        const SizedBox(height: 18),
+                        const _SectionTitle(title: 'Shop by Category'),
                         const SizedBox(height: 12),
-                        _CategoryStrip(
-                          onTap: (category) {
-                            _openSearch(category: category);
-                          },
+                        _CategoryRow(
+                          onTap: (value) => _openSearch(category: value),
                         ),
-                        const SizedBox(height: 22),
-                        _OfferBanner(onTap: _openSearch),
-                        const SizedBox(height: 24),
-                        _SectionHeader(
-                          title: 'Top Picks for You',
-                          onViewAll: _openSearch,
+                        const SizedBox(height: 20),
+                        _SectionTitle(
+                          title: 'Featured Products',
+                          onTap: _openSearch,
                         ),
                         const SizedBox(height: 12),
                         SizedBox(
-                          height: 314,
+                          height: 218,
                           child: ListView.separated(
                             scrollDirection: Axis.horizontal,
-                            itemCount: popular.length,
-                            separatorBuilder: (context, index) =>
-                                const SizedBox(width: 12),
-                            itemBuilder: (context, index) {
-                              final medicine = popular[index];
-
-                              return MedicineCard(
+                            itemCount: featured.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(width: 10),
+                            itemBuilder: (_, index) {
+                              final medicine = featured[index];
+                              return _FeaturedMedicineCard(
                                 medicine: medicine,
-                                isFavorite: controller.isFavorite(medicine.id),
-                                onFavoriteTap: () {
-                                  controller.toggleFavorite(medicine.id);
-                                },
                                 onTap: () => _openMedicine(medicine),
-                                onAddTap: () {
+                                onAdd: () {
                                   controller.addToCart(medicine);
                                   _showMessage(
                                     '${medicine.brandName} added to cart.',
@@ -275,14 +238,14 @@ class _PharmacyScreenState extends State<PharmacyScreen> {
                             },
                           ),
                         ),
-                        const SizedBox(height: 18),
+                        const SizedBox(height: 14),
                         const _TrustStrip(),
-                        const SizedBox(height: 24),
-                        const _SectionHeader(title: 'Nearby Pharmacies'),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 20),
+                        const _SectionTitle(title: 'Nearby Pharmacies'),
+                        const SizedBox(height: 10),
                         _NearbyPharmacyCard(
-                          pharmacyName: controller.selectedPharmacy,
-                          onOrderTap: _openSearch,
+                          name: controller.selectedPharmacy,
+                          onTap: _openSearch,
                         ),
                       ],
                     ),
@@ -313,128 +276,87 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxWidth < 350;
-
-        return Row(
-          children: [
-            Expanded(child: _BrandMark(compact: compact)),
-            if (compact)
-              IconButton(
-                tooltip: city,
-                onPressed: onCityTap,
-                icon: const Icon(
-                  Icons.location_on_outlined,
-                  color: AppTheme.primary,
-                ),
-              )
-            else
-              ActionChip(
-                avatar: const Icon(
-                  Icons.location_on_rounded,
-                  size: 16,
-                  color: AppTheme.primary,
-                ),
-                label: Text(city),
-                onPressed: onCityTap,
-              ),
-            if (hasActiveOrder)
-              IconButton(
-                tooltip: 'Track order',
-                onPressed: onOrderTap,
-                icon: const Icon(Icons.local_shipping_outlined),
-              ),
-            _CartButton(count: cartCount, onTap: onCartTap),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _BrandMark extends StatelessWidget {
-  const _BrandMark({required this.compact});
-
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
     return Row(
       children: [
-        const CircleAvatar(
-          radius: 20,
-          backgroundColor: AppTheme.primary,
-          child: Icon(Icons.health_and_safety_rounded, color: Colors.white),
+        Container(
+          width: 34,
+          height: 34,
+          decoration: const BoxDecoration(
+            color: AppTheme.primary,
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.health_and_safety_rounded,
+            color: Colors.white,
+            size: 20,
+          ),
         ),
         const SizedBox(width: 8),
-        Flexible(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'AsaanCare',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: AppTheme.primary,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              if (!compact)
-                const Text(
-                  'Health for Everyone',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Color(0xFF657386), fontSize: 10),
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _CartButton extends StatelessWidget {
-  const _CartButton({required this.count, required this.onTap});
-
-  final int count;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        IconButton(
-          tooltip: 'Cart',
-          onPressed: onTap,
-          icon: const Icon(Icons.shopping_cart_outlined),
-        ),
-        if (count > 0)
-          Positioned(
-            right: 2,
-            top: 1,
-            child: Container(
-              constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              decoration: const BoxDecoration(
-                color: AppTheme.primary,
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                '$count',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
+        const Expanded(
+          child: Text(
+            'AsaanCare',
+            style: TextStyle(
+              color: AppTheme.textDark,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.3,
             ),
           ),
+        ),
+        TextButton.icon(
+          onPressed: onCityTap,
+          style: TextButton.styleFrom(
+            foregroundColor: AppTheme.textDark,
+            minimumSize: const Size(72, 44),
+            padding: const EdgeInsets.symmetric(horizontal: 7),
+          ),
+          icon: const Icon(Icons.location_on_outlined, size: 16),
+          label: Text(
+            city,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+          ),
+        ),
+        if (hasActiveOrder)
+          IconButton(
+            onPressed: onOrderTap,
+            tooltip: 'Track order',
+            icon: const Icon(Icons.delivery_dining_outlined, size: 21),
+          ),
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            IconButton(
+              onPressed: onCartTap,
+              tooltip: 'Shopping cart',
+              icon: const Icon(Icons.shopping_cart_outlined, size: 22),
+            ),
+            if (cartCount > 0)
+              Positioned(
+                right: 4,
+                top: 2,
+                child: Container(
+                  constraints: const BoxConstraints(
+                    minWidth: 16,
+                    minHeight: 16,
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFE04444),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    '$cartCount',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 8,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ],
     );
   }
@@ -442,39 +364,43 @@ class _CartButton extends StatelessWidget {
 
 class _SearchBox extends StatelessWidget {
   const _SearchBox({required this.onTap});
-
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppTheme.surface,
-      borderRadius: BorderRadius.circular(16),
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
-          height: 58,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 13),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.border),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE4ECEA)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x08000000),
+                blurRadius: 12,
+                offset: Offset(0, 4),
+              ),
+            ],
           ),
           child: const Row(
             children: [
-              Icon(Icons.search_rounded, color: Color(0xFF657386)),
-              SizedBox(width: 10),
+              Icon(Icons.search_rounded, color: Color(0xFF7A8D91), size: 21),
+              SizedBox(width: 9),
               Expanded(
                 child: Text(
                   'Search medicines, health products...',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Color(0xFF657386)),
+                  style: TextStyle(color: Color(0xFF718287), fontSize: 12),
                 ),
               ),
-              Icon(Icons.document_scanner_outlined),
-              SizedBox(width: 12),
-              Icon(Icons.mic_none_rounded),
+              Icon(Icons.tune_rounded, color: AppTheme.primary, size: 19),
             ],
           ),
         ),
@@ -484,109 +410,167 @@ class _SearchBox extends StatelessWidget {
 }
 
 class _HeroBanner extends StatelessWidget {
-  const _HeroBanner({required this.onOrderTap});
-
-  final VoidCallback onOrderTap;
+  const _HeroBanner({required this.onTap});
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxWidth < 340;
-
-        return Container(
-          constraints: BoxConstraints(minHeight: compact ? 232 : 202),
-          padding: EdgeInsets.all(compact ? 16 : 20),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF006E73), Color(0xFF0A958B)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(22),
+    return Container(
+      constraints: const BoxConstraints(minHeight: 164),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF075B5F), Color(0xFF00877A)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x2A075B5F),
+            blurRadius: 18,
+            offset: Offset(0, 8),
           ),
-          child: Stack(
-            children: [
-              const Positioned(
-                right: -8,
-                bottom: -2,
-                child: Icon(
-                  Icons.shopping_basket_rounded,
-                  color: Color(0x55FFFFFF),
-                  size: 150,
-                ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -26,
+            top: -22,
+            child: Container(
+              width: 150,
+              height: 150,
+              decoration: const BoxDecoration(
+                color: Color(0x1718D5B5),
+                shape: BoxShape.circle,
               ),
-              const Positioned(
-                right: 40,
-                top: 10,
-                child: Icon(
-                  Icons.medication_rounded,
-                  color: Color(0xAAFFFFFF),
-                  size: 36,
+            ),
+          ),
+          const Positioned(right: 18, bottom: 18, child: _HeroMedicineArt()),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 20, 130, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Medicines at\nyour doorstep',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 21,
+                    height: 1.03,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.4,
+                  ),
                 ),
-              ),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Your Health,\nOur Priority',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: compact ? 24 : 27,
-                      height: 1.08,
-                      fontWeight: FontWeight.w900,
-                    ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Quick, safe & reliable delivery\nfrom trusted pharmacies',
+                  style: TextStyle(
+                    color: Color(0xDFFFFFFF),
+                    fontSize: 10.5,
+                    height: 1.3,
                   ),
-                  const SizedBox(height: 8),
-                  ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxWidth: compact
-                          ? constraints.maxWidth - 24
-                          : constraints.maxWidth * 0.72,
-                    ),
-                    child: const Text(
-                      'Order medicines from verified pharmacy partners.',
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Color(0xE6FFFFFF),
-                        fontSize: 14,
-                        height: 1.35,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  FilledButton.icon(
-                    onPressed: onOrderTap,
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  height: 32,
+                  child: FilledButton(
+                    onPressed: onTap,
                     style: FilledButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: AppTheme.primary,
+                      minimumSize: const Size(98, 32),
+                      padding: const EdgeInsets.symmetric(horizontal: 13),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
-                    icon: const Icon(Icons.arrow_forward_rounded),
-                    label: const Text('Order Now'),
+                    child: const Text('Order Medicines  →'),
                   ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeroMedicineArt extends StatelessWidget {
+  const _HeroMedicineArt();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 110,
+      height: 112,
+      child: Stack(
+        alignment: Alignment.bottomCenter,
+        children: [
+          Positioned(
+            right: 2,
+            bottom: 0,
+            child: Container(
+              width: 72,
+              height: 92,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE9FFFA),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: const [
+                  BoxShadow(color: Color(0x33000000), blurRadius: 12),
                 ],
               ),
-            ],
+              child: const Icon(
+                Icons.medical_services_rounded,
+                color: Color(0xFF18B594),
+                size: 38,
+              ),
+            ),
           ),
-        );
-      },
+          Positioned(
+            left: 3,
+            bottom: 4,
+            child: Container(
+              width: 34,
+              height: 58,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.medication_rounded,
+                color: Color(0xFF0B9385),
+                size: 21,
+              ),
+            ),
+          ),
+          const Positioned(
+            left: 22,
+            top: 2,
+            child: Icon(Icons.add_rounded, color: Colors.white, size: 24),
+          ),
+        ],
+      ),
     );
   }
 }
 
 class _QuickActions extends StatelessWidget {
   const _QuickActions({
-    required this.onUploadPrescription,
+    required this.onUpload,
     required this.onQuickOrder,
     required this.onReminder,
     required this.onOffers,
   });
 
-  final VoidCallback onUploadPrescription;
+  final VoidCallback onUpload;
   final VoidCallback onQuickOrder;
   final VoidCallback onReminder;
   final VoidCallback onOffers;
@@ -594,176 +578,335 @@ class _QuickActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = [
-      (Icons.upload_file_rounded, 'Upload\nPrescription', onUploadPrescription),
-      (Icons.flash_on_rounded, 'Quick\nOrder', onQuickOrder),
+      (Icons.upload_file_rounded, 'Upload\nPrescription', onUpload),
+      (Icons.bolt_rounded, 'Quick\nOrder', onQuickOrder),
       (Icons.alarm_rounded, 'Medicine\nReminder', onReminder),
-      (Icons.local_offer_rounded, 'Offers &\nDeals', onOffers),
+      (Icons.sell_outlined, 'Offers &\nDeals', onOffers),
     ];
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxWidth < 350;
-
-        return GridView.builder(
-          itemCount: items.length,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: compact ? 2 : 4,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            mainAxisExtent: compact ? 108 : 98,
-          ),
-          itemBuilder: (context, index) {
-            final item = items[index];
-
-            return InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: item.$3,
-              child: Container(
-                padding: const EdgeInsets.all(9),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF7FAFA),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.border),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: AppTheme.softTeal,
-                      child: Icon(item.$1, color: AppTheme.primary),
-                    ),
-                    const SizedBox(height: 7),
-                    Text(
-                      item.$2,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      style: const TextStyle(
-                        color: Color(0xFF07132D),
-                        fontSize: 11,
-                        height: 1.14,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-}
-
-class _CategoryStrip extends StatelessWidget {
-  const _CategoryStrip({required this.onTap});
-
-  final ValueChanged<MedicineCategory?> onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final categories = MedicineCategory.values;
-
-    return SizedBox(
-      height: 104,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: categories.length + 1,
-        separatorBuilder: (context, index) => const SizedBox(width: 12),
-        itemBuilder: (context, index) {
-          final category = index == categories.length
-              ? null
-              : categories[index];
-
-          return InkWell(
-            borderRadius: BorderRadius.circular(18),
-            onTap: () => onTap(category),
-            child: SizedBox(
-              width: 76,
-              child: Column(
-                children: [
-                  CircleAvatar(
-                    radius: 29,
-                    backgroundColor: AppTheme.softTeal,
-                    child: Icon(
-                      category == null
-                          ? Icons.grid_view_rounded
-                          : _categoryIcon(category),
-                      color: AppTheme.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    category?.label ?? 'More',
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFF07132D),
-                      fontSize: 11.5,
-                      height: 1.1,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var index = 0; index < items.length; index++) ...[
+          if (index > 0) const SizedBox(width: 8),
+          Expanded(
+            child: _ActionTile(
+              icon: items[index].$1,
+              label: items[index].$2,
+              onTap: items[index].$3,
             ),
-          );
-        },
-      ),
+          ),
+        ],
+      ],
     );
   }
 }
 
-class _OfferBanner extends StatelessWidget {
-  const _OfferBanner({required this.onTap});
-
+class _ActionTile extends StatelessWidget {
+  const _ActionTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+  final IconData icon;
+  final String label;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(minHeight: 150),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFE9FAF7), Color(0xFFCFF2EC)],
+    return Column(
+      children: [
+        Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(13),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(13),
+            child: Container(
+              height: 56,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(13),
+                border: Border.all(color: const Color(0xFFE5EFEC)),
+              ),
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFE8F6F2),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: AppTheme.primary, size: 17),
+              ),
+            ),
+          ),
         ),
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Row(
-        children: [
+        const SizedBox(height: 6),
+        Text(
+          label,
+          maxLines: 2,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: AppTheme.textDark,
+            fontSize: 9.5,
+            height: 1.15,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({required this.title, this.onTap});
+  final String title;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            title,
+            style: const TextStyle(
+              color: AppTheme.textDark,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.2,
+            ),
+          ),
+        ),
+        if (onTap != null)
+          TextButton(
+            onPressed: onTap,
+            style: TextButton.styleFrom(
+              minimumSize: const Size(54, 44),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+            ),
+            child: const Text('View all', style: TextStyle(fontSize: 10)),
+          ),
+      ],
+    );
+  }
+}
+
+class _CategoryRow extends StatelessWidget {
+  const _CategoryRow({required this.onTap});
+  final ValueChanged<MedicineCategory?> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    const categories = [
+      (MedicineCategory.painRelief, Icons.medication_rounded, 'Pain Relief'),
+      (MedicineCategory.coldAndFlu, Icons.air_rounded, 'Cold & Flu'),
+      (MedicineCategory.diabetesCare, Icons.bloodtype_outlined, 'Diabetes'),
+      (MedicineCategory.heartCare, Icons.favorite_rounded, 'Heart Care'),
+    ];
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var index = 0; index <= categories.length; index++) ...[
+          if (index > 0) const SizedBox(width: 5),
           Expanded(
+            child: _CategoryItem(
+              icon: index == categories.length
+                  ? Icons.grid_view_rounded
+                  : categories[index].$2,
+              label: index == categories.length
+                  ? 'View All'
+                  : categories[index].$3,
+              onTap: () => onTap(
+                index == categories.length ? null : categories[index].$1,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _CategoryItem extends StatelessWidget {
+  const _CategoryItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(30),
+      child: Column(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: const BoxDecoration(
+              color: Color(0xFFE7F6F1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: AppTheme.primary, size: 20),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            maxLines: 2,
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: AppTheme.textDark,
+              fontSize: 9,
+              height: 1.1,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FeaturedMedicineCard extends StatelessWidget {
+  const _FeaturedMedicineCard({
+    required this.medicine,
+    required this.onTap,
+    required this.onAdd,
+  });
+  final Medicine medicine;
+  final VoidCallback onTap;
+  final VoidCallback onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 116,
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE6EEEC)),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Flat 20% OFF',
-                  style: TextStyle(
-                    color: AppTheme.primary,
-                    fontSize: 25,
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    SizedBox(
+                      height: 84,
+                      width: double.infinity,
+                      child: FittedBox(
+                        fit: BoxFit.fill,
+                        child: SizedBox(
+                          width: 100,
+                          height: 112,
+                          child: MedicineVisual(medicine: medicine),
+                        ),
+                      ),
+                    ),
+                    if (medicine.isOnSale)
+                      Positioned(
+                        left: -3,
+                        top: -3,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFEBEB),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          child: Text(
+                            '${medicine.discountPercent}% OFF',
+                            style: const TextStyle(
+                              color: Color(0xFFD93636),
+                              fontSize: 7,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  medicine.brandName,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppTheme.textDark,
+                    fontSize: 10.5,
+                    height: 1.15,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 4),
-                const Text(
-                  'On selected vitamins and supplements',
-                  style: TextStyle(color: Color(0xFF07132D), height: 1.35),
+                const SizedBox(height: 2),
+                Text(
+                  medicine.strength,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppTheme.textMuted,
+                    fontSize: 8.5,
+                  ),
                 ),
-                const SizedBox(height: 12),
-                FilledButton(onPressed: onTap, child: const Text('Shop Now')),
+                const Spacer(),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Rs. ${medicine.price}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppTheme.textDark,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    Semantics(
+                      button: true,
+                      label: 'Add ${medicine.brandName} to cart',
+                      child: InkWell(
+                        onTap: medicine.isInStock ? onAdd : null,
+                        customBorder: const CircleBorder(),
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: medicine.isInStock
+                                ? AppTheme.primary
+                                : const Color(0xFFCAD5D2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.add_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
-          const SizedBox(width: 12),
-          const Icon(
-            Icons.shopping_basket_rounded,
-            color: AppTheme.primary,
-            size: 78,
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -775,144 +918,148 @@ class _TrustStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const items = [
-      (Icons.verified_outlined, 'Genuine', '100% Original'),
-      (Icons.delivery_dining_outlined, 'Fast Delivery', 'Quick & Safe'),
-      (Icons.shield_outlined, 'Secure', 'Protected flow'),
-      (Icons.assignment_return_outlined, 'Easy Returns', 'Policy based'),
+      (Icons.verified_outlined, '100% Genuine', 'Medicines'),
+      (Icons.schedule_rounded, 'Licensed', 'Pharmacies'),
+      (Icons.shield_outlined, 'Secure', 'Payments'),
     ];
-
-    return SizedBox(
-      height: 82,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: items.length,
-        separatorBuilder: (context, index) => const SizedBox(width: 10),
-        itemBuilder: (context, index) {
-          final item = items[index];
-
-          return Container(
-            width: 150,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF9FBFB),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppTheme.border),
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: AppTheme.softTeal,
-                  child: Icon(item.$1, color: AppTheme.primary),
-                ),
-                const SizedBox(width: 9),
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.$2,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFF07132D),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w900,
-                        ),
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: const BoxDecoration(
+        border: Border.symmetric(
+          horizontal: BorderSide(color: Color(0xFFE3ECEA)),
+        ),
+      ),
+      child: Row(
+        children: [
+          for (var index = 0; index < items.length; index++) ...[
+            if (index > 0)
+              const SizedBox(
+                height: 30,
+                child: VerticalDivider(width: 12, color: Color(0xFFE3ECEA)),
+              ),
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(items[index].$1, color: AppTheme.primary, size: 17),
+                  const SizedBox(width: 5),
+                  Flexible(
+                    child: Text(
+                      '${items[index].$2}\n${items[index].$3}',
+                      maxLines: 2,
+                      style: const TextStyle(
+                        color: AppTheme.textMuted,
+                        fontSize: 8,
+                        height: 1.1,
+                        fontWeight: FontWeight.w700,
                       ),
-                      Text(
-                        item.$3,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFF657386),
-                          fontSize: 10.5,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          );
-        },
+          ],
+        ],
       ),
     );
   }
 }
 
 class _NearbyPharmacyCard extends StatelessWidget {
-  const _NearbyPharmacyCard({
-    required this.pharmacyName,
-    required this.onOrderTap,
-  });
-
-  final String pharmacyName;
-  final VoidCallback onOrderTap;
+  const _NearbyPharmacyCard({required this.name, required this.onTap});
+  final String name;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      height: 122,
+      padding: const EdgeInsets.fromLTRB(13, 13, 8, 10),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.border),
+        color: const Color(0xFFE8F7F2),
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: Column(
+      child: Row(
         children: [
-          Row(
-            children: [
-              const CircleAvatar(
-                radius: 32,
-                backgroundColor: AppTheme.primary,
-                child: Icon(
-                  Icons.local_pharmacy_rounded,
-                  color: Colors.white,
-                  size: 31,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppTheme.textDark,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 13),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                const SizedBox(height: 3),
+                const Row(
                   children: [
+                    Icon(
+                      Icons.check_circle_rounded,
+                      color: Color(0xFF159D76),
+                      size: 13,
+                    ),
+                    SizedBox(width: 4),
                     Text(
-                      pharmacyName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF07132D),
-                        fontSize: 17,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Open • 0.8 km • Rating 4.7',
-                      style: TextStyle(color: Color(0xFF657386)),
-                    ),
-                    const SizedBox(height: 3),
-                    const Text(
-                      'Free delivery above Rs. 500',
+                      'Open · 1.2 km · Rating 4.7',
                       style: TextStyle(
-                        color: AppTheme.primary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
+                        color: AppTheme.textMuted,
+                        fontSize: 8.5,
                       ),
                     ),
                   ],
                 ),
-              ),
-            ],
+                const Spacer(),
+                SizedBox(
+                  height: 32,
+                  child: FilledButton(
+                    onPressed: onTap,
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(150, 32),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    child: const Text('Order from this pharmacy'),
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: onOrderTap,
-              icon: const Icon(Icons.shopping_bag_outlined),
-              label: const Text('Order from this pharmacy'),
+          const SizedBox(width: 8),
+          const SizedBox(
+            width: 92,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Positioned(
+                  right: 3,
+                  bottom: 8,
+                  child: Icon(
+                    Icons.delivery_dining_rounded,
+                    color: AppTheme.primary,
+                    size: 66,
+                  ),
+                ),
+                Positioned(
+                  left: 2,
+                  top: 6,
+                  child: Icon(
+                    Icons.local_pharmacy_rounded,
+                    color: Color(0xFF20AE88),
+                    size: 35,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -921,79 +1068,103 @@ class _NearbyPharmacyCard extends StatelessWidget {
   }
 }
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, this.onViewAll});
-
-  final String title;
-  final VoidCallback? onViewAll;
+class _PharmacyNav extends StatelessWidget {
+  const _PharmacyNav({required this.onTap});
+  final ValueChanged<int> onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            title,
-            style: const TextStyle(
-              color: Color(0xFF07132D),
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-            ),
+    const items = [
+      (Icons.home_rounded, 'Home'),
+      (Icons.medical_services_outlined, 'Doctors'),
+      (Icons.medication_rounded, 'Pharmacy'),
+      (Icons.note_alt_outlined, 'Records'),
+      (Icons.person_outline_rounded, 'Account'),
+    ];
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Color(0xFFE4ECEA))),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x0D000000),
+            blurRadius: 18,
+            offset: Offset(0, -4),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        minimum: const EdgeInsets.only(bottom: 4),
+        child: SizedBox(
+          height: 62,
+          child: Row(
+            children: List.generate(items.length, (index) {
+              final selected = index == 2;
+              return Expanded(
+                child: Semantics(
+                  button: true,
+                  selected: selected,
+                  label: items[index].$2,
+                  child: InkWell(
+                    onTap: () => onTap(index),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          items[index].$1,
+                          size: 21,
+                          color: selected
+                              ? AppTheme.primary
+                              : const Color(0xFF8A999C),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          items[index].$2,
+                          style: TextStyle(
+                            color: selected
+                                ? AppTheme.primary
+                                : const Color(0xFF8A999C),
+                            fontSize: 8.5,
+                            fontWeight: selected
+                                ? FontWeight.w900
+                                : FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
           ),
         ),
-        if (onViewAll != null)
-          TextButton(onPressed: onViewAll, child: const Text('View all')),
-      ],
+      ),
     );
   }
 }
 
 class _ErrorBanner extends StatelessWidget {
   const _ErrorBanner({required this.message, required this.onRetry});
-
   final String message;
   final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF3F3),
-        borderRadius: BorderRadius.circular(16),
+        color: const Color(0xFFFFF1F1),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
           const Icon(Icons.error_outline_rounded, color: AppTheme.danger),
-          const SizedBox(width: 10),
-          Expanded(child: Text(message)),
+          const SizedBox(width: 8),
+          Expanded(child: Text(message, style: const TextStyle(fontSize: 12))),
           TextButton(onPressed: onRetry, child: const Text('Retry')),
         ],
       ),
     );
   }
-}
-
-class _LoadingView extends StatelessWidget {
-  const _LoadingView();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(child: CircularProgressIndicator());
-  }
-}
-
-IconData _categoryIcon(MedicineCategory category) {
-  return switch (category) {
-    MedicineCategory.painRelief => Icons.medication_rounded,
-    MedicineCategory.coldAndFlu => Icons.air_rounded,
-    MedicineCategory.diabetesCare => Icons.bloodtype_outlined,
-    MedicineCategory.heartCare => Icons.favorite_rounded,
-    MedicineCategory.vitamins => Icons.local_drink_outlined,
-    MedicineCategory.babyCare => Icons.child_care_rounded,
-    MedicineCategory.skinCare => Icons.spa_outlined,
-    MedicineCategory.personalCare => Icons.clean_hands_outlined,
-    MedicineCategory.firstAid => Icons.medical_services_outlined,
-    MedicineCategory.digestiveCare => Icons.health_and_safety_outlined,
-  };
 }

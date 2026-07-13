@@ -17,4 +17,22 @@ abstract final class ApiEndpoints {
   static const String patientProfile = '/v1/patients/me';
   static const String healthReadings = '/v1/health/readings';
   static const String paymentIntents = '/v1/payments/intents';
+
+  static const Map<String, String> declared = {
+    'authLogin': authLogin,
+    'authRegister': authRegister,
+    'authMe': authMe,
+    'authLogout': authLogout,
+    'authForgotPassword': authForgotPassword,
+    'doctors': doctors,
+    'appointments': appointments,
+    'prescriptions': prescriptions,
+    'medicalRecords': medicalRecords,
+    'pharmacyMedicines': pharmacyMedicines,
+    'pharmacyOrders': pharmacyOrders,
+    'notifications': notifications,
+    'patientProfile': patientProfile,
+    'healthReadings': healthReadings,
+    'paymentIntents': paymentIntents,
+  };
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/layout/app_layout.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../utils/wallet_formatters.dart';
 
@@ -21,6 +22,8 @@ class WalletBalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = AppLayout.isCompact(context);
+
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
@@ -105,35 +108,58 @@ class WalletBalanceCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 22),
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: onAddMoney,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: AppTheme.primaryDark,
-                    minimumSize: const Size.fromHeight(48),
-                  ),
-                  icon: const Icon(Icons.add_rounded),
-                  label: const Text('Add Money'),
-                ),
+          if (compact) ...[
+            FilledButton.icon(
+              onPressed: onAddMoney,
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: AppTheme.primaryDark,
+                minimumSize: const Size.fromHeight(48),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: onTransactions,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: const BorderSide(color: Color(0xBFFFFFFF)),
-                    minimumSize: const Size.fromHeight(48),
-                  ),
-                  icon: const Icon(Icons.receipt_long_outlined),
-                  label: const Text('Transactions'),
-                ),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('Add Money'),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: onTransactions,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: const BorderSide(color: Color(0xBFFFFFFF)),
+                minimumSize: const Size.fromHeight(48),
               ),
-            ],
-          ),
+              icon: const Icon(Icons.receipt_long_outlined),
+              label: const Text('Transactions'),
+            ),
+          ] else
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: onAddMoney,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: AppTheme.primaryDark,
+                      minimumSize: const Size.fromHeight(48),
+                    ),
+                    icon: const Icon(Icons.add_rounded),
+                    label: const Text('Add Money'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: onTransactions,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Color(0xBFFFFFFF)),
+                      minimumSize: const Size.fromHeight(48),
+                    ),
+                    icon: const Icon(Icons.receipt_long_outlined),
+                    label: const Text('Transactions'),
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );

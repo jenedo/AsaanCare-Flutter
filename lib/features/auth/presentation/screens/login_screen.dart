@@ -4,6 +4,7 @@ import '../../../../core/routes/app_routes.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../controllers/auth_controller.dart';
 import '../widgets/auth_header.dart';
+import '../widgets/social_auth_buttons.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key, required this.authController});
@@ -156,6 +157,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                   )
                                 : const Text('Login'),
                           ),
+                          const SizedBox(height: 24),
+                          SocialAuthButtons(
+                            enabled: !isLoading,
+                            onProviderSelected: _showSocialAuthMessage,
+                          ),
                           const SizedBox(height: 18),
                           Center(
                             child: TextButton(
@@ -183,6 +189,19 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         );
       },
+    );
+  }
+
+  void _showSocialAuthMessage(SocialAuthProvider provider) {
+    final name = switch (provider) {
+      SocialAuthProvider.google => 'Google',
+      SocialAuthProvider.github => 'GitHub',
+      SocialAuthProvider.linkedin => 'LinkedIn',
+      SocialAuthProvider.facebook => 'Facebook',
+    };
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$name sign-in will be available soon.')),
     );
   }
 }

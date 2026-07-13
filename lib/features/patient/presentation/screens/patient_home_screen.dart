@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/constants/app_assets.dart';
 import '../../../../core/layout/app_layout.dart';
 import '../../../../core/routes/app_routes.dart';
 import '../../../../core/utils/user_initials.dart';
@@ -42,6 +43,12 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     Navigator.of(context).pushNamed(AppRoutes.pharmacy);
   }
 
+  void _openCategory(String specialty) {
+    Navigator.of(
+      context,
+    ).pushNamed(AppRoutes.findDoctors, arguments: specialty);
+  }
+
   void _handleNavTap(int index) {
     switch (index) {
       case 0:
@@ -74,7 +81,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      backgroundColor: AppTheme.background,
       bottomNavigationBar: AppBottomNavBar(
         currentIndex: _currentNavIndex,
         onTap: _handleNavTap,
@@ -89,7 +96,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
             child: ListView(
               padding: EdgeInsets.fromLTRB(
                 AppLayout.horizontalPadding(context),
-                18,
+                14,
                 AppLayout.horizontalPadding(context),
                 26,
               ),
@@ -101,26 +108,26 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                   onProfileTap: () =>
                       Navigator.of(context).pushNamed(AppRoutes.profile),
                 ),
-                const SizedBox(height: 22),
+                const SizedBox(height: 16),
                 _SearchBar(
                   onTap: () =>
                       Navigator.of(context).pushNamed(AppRoutes.findDoctors),
                   onMicTap: () => _showComingSoon('Voice search'),
                 ),
-                const SizedBox(height: 22),
+                const SizedBox(height: 14),
                 _ConsultBanner(
                   doctorAsset: _bannerDoctor,
                   onTap: () =>
                       Navigator.of(context).pushNamed(AppRoutes.findDoctors),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 18),
                 _SectionHeader(
                   title: 'Categories',
                   actionText: 'View all',
                   onTap: () => _showComingSoon('All categories'),
                 ),
-                const SizedBox(height: 14),
-                _CategoriesRow(onTap: _showComingSoon),
+                const SizedBox(height: 10),
+                _CategoriesRow(onTap: _openCategory),
                 const SizedBox(height: 24),
                 _SectionHeader(
                   title: 'Featured Doctors',
@@ -139,7 +146,7 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 const Text(
                   'Quick Actions',
                   style: TextStyle(
-                    color: Color(0xFF07132D),
+                    color: AppTheme.textDark,
                     fontSize: 21,
                     fontWeight: FontWeight.w900,
                     letterSpacing: -0.4,
@@ -161,11 +168,11 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                       children: [
                         PatientHomeCard(
                           icon: Icons.calendar_month_outlined,
-                          title: 'Book\nAppointment',
+                          title: 'My\nAppointments',
                           iconColor: const Color(0xFF2563EB),
                           onTap: () => Navigator.of(
                             context,
-                          ).pushNamed(AppRoutes.findDoctors),
+                          ).pushNamed(AppRoutes.appointments),
                         ),
                         PatientHomeCard(
                           icon: Icons.medication_liquid_outlined,
@@ -192,7 +199,8 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                 _SectionHeader(
                   title: 'Upcoming Appointment',
                   actionText: 'View all',
-                  onTap: () => _showComingSoon('Appointments'),
+                  onTap: () =>
+                      Navigator.of(context).pushNamed(AppRoutes.appointments),
                 ),
                 const SizedBox(height: 12),
                 _UpcomingAppointmentCard(
@@ -219,8 +227,18 @@ class _Header extends StatelessWidget {
   final VoidCallback onNotificationTap;
   final VoidCallback onProfileTap;
 
+  String _greetingForHour(int hour) {
+    if (hour < 12) return 'Good morning,';
+    if (hour < 17) return 'Good afternoon,';
+    if (hour < 21) return 'Good evening,';
+    return 'Good night,';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final compact = AppLayout.isCompact(context);
+    final greeting = _greetingForHour(DateTime.now().hour);
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -228,55 +246,44 @@ class _Header extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Good morning,',
+              Text(
+                greeting,
                 style: TextStyle(
-                  color: Color(0xFF516071),
-                  fontSize: 19,
+                  color: AppTheme.textMuted,
+                  fontSize: compact ? 11 : 12,
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               Text(
                 userName,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Color(0xFF07132D),
-                  fontSize: 34,
+                style: TextStyle(
+                  color: AppTheme.textDark,
+                  fontSize: compact ? 15 : 17,
                   fontWeight: FontWeight.w900,
-                  letterSpacing: -1,
+                  letterSpacing: -0.25,
                 ),
               ),
             ],
           ),
         ),
-        GestureDetector(
-          onTap: onNotificationTap,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              const Icon(
-                Icons.notifications_none_rounded,
-                size: 32,
-                color: Color(0xFF526071),
-              ),
-              Positioned(
-                right: 3,
-                top: 2,
-                child: Container(
-                  height: 10,
-                  width: 10,
-                  decoration: const BoxDecoration(
-                    color: AppTheme.primary,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-            ],
+        IconButton(
+          onPressed: onNotificationTap,
+          tooltip: 'Notifications',
+          visualDensity: VisualDensity.compact,
+          icon: Badge(
+            smallSize: 7,
+            backgroundColor: AppTheme.primary,
+            child: Icon(
+              Icons.notifications_none_rounded,
+              size: compact ? 22 : 24,
+              color: AppTheme.textMuted,
+            ),
           ),
         ),
-        const SizedBox(width: 20),
+        const SizedBox(width: 4),
         Semantics(
           button: true,
           label: 'Open profile and settings',
@@ -284,13 +291,13 @@ class _Header extends StatelessWidget {
             onTap: onProfileTap,
             borderRadius: BorderRadius.circular(40),
             child: CircleAvatar(
-              radius: 29,
+              radius: compact ? 18 : 20,
               backgroundColor: AppTheme.softTeal,
               child: Text(
                 UserInitials.fromName(userName),
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppTheme.primary,
-                  fontSize: 19,
+                  fontSize: compact ? 12 : 13,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -310,45 +317,48 @@ class _SearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = AppLayout.isCompact(context);
+
     return Material(
       color: AppTheme.surface,
-      borderRadius: BorderRadius.circular(17),
+      borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(17),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
-          height: 58,
+          height: compact ? 44 : 48,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(17),
-            border: Border.all(color: const Color(0xFFDDE5EA), width: 1.4),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppTheme.border),
           ),
           child: Row(
             children: [
-              const SizedBox(width: 18),
-              const Icon(
-                Icons.search_rounded,
-                color: Color(0xFF657386),
-                size: 30,
-              ),
               const SizedBox(width: 12),
-              const Expanded(
+              Icon(
+                Icons.search_rounded,
+                color: AppTheme.textMuted,
+                size: compact ? 20 : 22,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
                 child: Text(
                   'Search doctors, symptoms, medicines...',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: Color(0xFF667386),
-                    fontSize: 16,
+                    color: AppTheme.textMuted,
+                    fontSize: compact ? 10.5 : 12,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
               IconButton(
                 onPressed: onMicTap,
+                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
                 icon: const Icon(
                   Icons.mic_none_rounded,
-                  color: Color(0xFF07132D),
-                  size: 30,
+                  color: AppTheme.textDark,
+                  size: 20,
                 ),
               ),
               const SizedBox(width: 4),
@@ -368,19 +378,20 @@ class _ConsultBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = AppLayout.isCompact(context);
+
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(14),
         child: Ink(
-          height: 176,
+          height: compact ? 154 : 174,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(14),
             gradient: const LinearGradient(
-              colors: [Color(0xFF006E73), Color(0xFF1FAFA5), Color(0xFFE6F5F2)],
-              stops: [0, 0.58, 1],
+              colors: [Color(0xFF075B5F), Color(0xFF008E83)],
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
             ),
@@ -405,45 +416,45 @@ class _ConsultBanner extends StatelessWidget {
                 bottom: -2,
                 child: Image.asset(
                   doctorAsset,
-                  height: 176,
+                  height: compact ? 150 : 170,
                   fit: BoxFit.contain,
                 ),
               ),
-              const Positioned(
-                left: 18,
-                top: 18,
-                width: 190,
+              Positioned(
+                left: 14,
+                top: compact ? 15 : 17,
+                width: compact ? 160 : 190,
                 child: Text(
                   'Talk to a Doctor\nAnytime, Anywhere',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 22,
+                    fontSize: compact ? 17 : 19,
                     height: 1.18,
                     fontWeight: FontWeight.w900,
                     letterSpacing: -0.5,
                   ),
                 ),
               ),
-              const Positioned(
-                left: 18,
-                top: 78,
-                width: 162,
+              Positioned(
+                left: 14,
+                top: compact ? 61 : 69,
+                width: compact ? 142 : 162,
                 child: Text(
-                  'Start a Free Video\nConsultation.',
+                  'Start a video consultation in minutes.',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 15.5,
+                    fontSize: compact ? 10.5 : 12,
                     height: 1.2,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
               Positioned(
-                left: 18,
-                bottom: 18,
+                left: 14,
+                bottom: compact ? 13 : 15,
                 child: Container(
-                  height: 40,
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  height: compact ? 32 : 36,
+                  padding: EdgeInsets.symmetric(horizontal: compact ? 15 : 18),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(99),
@@ -453,28 +464,19 @@ class _ConsultBanner extends StatelessWidget {
                     'Consult Now',
                     style: TextStyle(
                       color: AppTheme.primary,
-                      fontSize: 15,
+                      fontSize: 12,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                 ),
               ),
               Positioned(
-                right: 32,
-                top: 58,
-                child: Icon(
-                  Icons.favorite_border_rounded,
-                  color: Colors.white.withValues(alpha: 0.58),
-                  size: 32,
-                ),
-              ),
-              Positioned(
-                right: 112,
-                top: 72,
+                right: 96,
+                top: 59,
                 child: Icon(
                   Icons.health_and_safety_outlined,
-                  color: Colors.white.withValues(alpha: 0.32),
-                  size: 52,
+                  color: Colors.white.withValues(alpha: 0.2),
+                  size: 46,
                 ),
               ),
             ],
@@ -504,8 +506,8 @@ class _SectionHeader extends StatelessWidget {
           child: Text(
             title,
             style: const TextStyle(
-              color: Color(0xFF07132D),
-              fontSize: 21,
+              color: AppTheme.textDark,
+              fontSize: 17,
               fontWeight: FontWeight.w900,
               letterSpacing: -0.4,
             ),
@@ -517,7 +519,7 @@ class _SectionHeader extends StatelessWidget {
             actionText,
             style: const TextStyle(
               color: AppTheme.primary,
-              fontSize: 17,
+              fontSize: 12,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -534,82 +536,109 @@ class _CategoriesRow extends StatelessWidget {
 
   static const List<_CategoryItem> _items = [
     _CategoryItem(
-      icon: Icons.medical_services_outlined,
-      title: 'General\nPhysician',
-      color: AppTheme.primary,
+      imageAsset: AppAssets.generalDoctor,
+      title: 'General\nDoctor',
+      specialty: 'General Physician',
       bg: Color(0xFFEAF7F5),
     ),
     _CategoryItem(
-      icon: Icons.child_care_outlined,
+      imageAsset: AppAssets.pediatrics,
       title: 'Pediatrics',
-      color: AppTheme.primary,
+      specialty: 'Pediatrician',
       bg: Color(0xFFEAF7F5),
     ),
     _CategoryItem(
-      icon: Icons.monitor_heart_outlined,
+      imageAsset: AppAssets.gynecology,
       title: 'Gynecology',
-      color: Color(0xFFFF6B61),
+      specialty: 'Gynecologist',
       bg: Color(0xFFFFEFEF),
     ),
     _CategoryItem(
-      icon: Icons.healing_outlined,
+      imageAsset: AppAssets.dermatology,
       title: 'Dermatology',
-      color: Color(0xFFFF6B61),
+      specialty: 'Dermatologist',
       bg: Color(0xFFFFEFEF),
     ),
     _CategoryItem(
-      icon: Icons.mood_outlined,
+      imageAsset: AppAssets.dentistry,
       title: 'Dentistry',
-      color: AppTheme.primary,
+      specialty: 'Dentist',
       bg: Color(0xFFEAF7F5),
     ),
   ];
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 106,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: _items.length,
-        separatorBuilder: (context, index) => const SizedBox(width: 12),
-        itemBuilder: (context, index) {
-          final item = _items[index];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardWidth = ((constraints.maxWidth - 24) / 4).clamp(64.0, 82.0);
 
-          return GestureDetector(
-            onTap: () => onTap(item.title.replaceAll('\n', ' ')),
-            child: SizedBox(
-              width: 76,
-              child: Column(
-                children: [
-                  Container(
-                    height: 62,
-                    width: 62,
-                    decoration: BoxDecoration(
-                      color: item.bg,
-                      borderRadius: BorderRadius.circular(24),
+        return SizedBox(
+          height: 102,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: _items.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 8),
+            itemBuilder: (context, index) {
+              final item = _items[index];
+
+              return SizedBox(
+                width: cardWidth,
+                child: Material(
+                  color: item.bg,
+                  borderRadius: BorderRadius.circular(14),
+                  child: InkWell(
+                    onTap: () => onTap(item.specialty),
+                    borderRadius: BorderRadius.circular(14),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(5, 10, 5, 7),
+                      child: Column(
+                        children: [
+                          Container(
+                            height: 48,
+                            width: 48,
+                            decoration: BoxDecoration(
+                              color: AppTheme.surface,
+                              borderRadius: BorderRadius.circular(13),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: Image.asset(
+                              item.imageAsset,
+                              fit: BoxFit.cover,
+                              filterQuality: FilterQuality.medium,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Icon(
+                                    Icons.medical_services_outlined,
+                                    color: AppTheme.primary,
+                                    size: 27,
+                                  ),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Expanded(
+                            child: Text(
+                              item.title,
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: AppTheme.textDark,
+                                fontSize: 9.5,
+                                height: 1.08,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    child: Icon(item.icon, color: item.color, size: 32),
                   ),
-                  const SizedBox(height: 9),
-                  Text(
-                    item.title,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Color(0xFF07132D),
-                      fontSize: 12.2,
-                      height: 1.12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }
@@ -697,6 +726,7 @@ class _DoctorCard extends StatelessWidget {
           decoration: BoxDecoration(
             border: Border.all(color: AppTheme.border),
             borderRadius: BorderRadius.circular(17),
+            boxShadow: AppTheme.softShadow,
           ),
           child: Column(
             children: [
@@ -711,7 +741,7 @@ class _DoctorCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  color: Color(0xFF07132D),
+                  color: AppTheme.textDark,
                   fontSize: 14,
                   fontWeight: FontWeight.w900,
                 ),
@@ -722,7 +752,7 @@ class _DoctorCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  color: Color(0xFF657386),
+                  color: AppTheme.textMuted,
                   fontSize: 12.5,
                   fontWeight: FontWeight.w500,
                 ),
@@ -739,11 +769,11 @@ class _DoctorCard extends StatelessWidget {
                   const SizedBox(width: 3),
                   Flexible(
                     child: Text(
-                      '$rating • $fee',
+                      '$rating - $fee',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: Color(0xFF07132D),
+                        color: AppTheme.textDark,
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
                       ),
@@ -782,13 +812,7 @@ class _UpcomingAppointmentCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: AppTheme.border),
-            boxShadow: const [
-              BoxShadow(
-                blurRadius: 18,
-                offset: Offset(0, 8),
-                color: Color(0x0D000000),
-              ),
-            ],
+            boxShadow: AppTheme.softShadow,
           ),
           child: Row(
             children: [
@@ -829,7 +853,7 @@ class _UpcomingAppointmentCard extends StatelessWidget {
                     Text(
                       'Dr. Ali Raza',
                       style: TextStyle(
-                        color: Color(0xFF07132D),
+                        color: AppTheme.textDark,
                         fontSize: 17,
                         fontWeight: FontWeight.w900,
                       ),
@@ -838,7 +862,7 @@ class _UpcomingAppointmentCard extends StatelessWidget {
                     Text(
                       'Cardiologist',
                       style: TextStyle(
-                        color: Color(0xFF657386),
+                        color: AppTheme.textMuted,
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
@@ -848,7 +872,7 @@ class _UpcomingAppointmentCard extends StatelessWidget {
               ),
               const Icon(
                 Icons.calendar_month_outlined,
-                color: Color(0xFF07132D),
+                color: AppTheme.textDark,
                 size: 22,
               ),
               const SizedBox(width: 7),
@@ -856,7 +880,7 @@ class _UpcomingAppointmentCard extends StatelessWidget {
                 'Tomorrow\n11:00 AM',
                 textAlign: TextAlign.left,
                 style: TextStyle(
-                  color: Color(0xFF07132D),
+                  color: AppTheme.textDark,
                   fontSize: 14,
                   height: 1.3,
                   fontWeight: FontWeight.w700,
@@ -872,14 +896,14 @@ class _UpcomingAppointmentCard extends StatelessWidget {
 
 class _CategoryItem {
   const _CategoryItem({
-    required this.icon,
+    required this.imageAsset,
     required this.title,
-    required this.color,
+    required this.specialty,
     required this.bg,
   });
 
-  final IconData icon;
+  final String imageAsset;
   final String title;
-  final Color color;
+  final String specialty;
   final Color bg;
 }

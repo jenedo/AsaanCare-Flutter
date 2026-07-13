@@ -54,6 +54,59 @@ void main() {
       expect(tokenStore.readCount, 1);
     });
 
+    test('registration uses the patient auth contract', () async {
+      final tokenStore = _FakeAuthTokenStore();
+      final dataSource = _dataSource(
+        tokenStore: tokenStore,
+        handler: (request) async {
+          expect(request.method, 'POST');
+          expect(request.url.path, ApiEndpoints.authRegister);
+          expect(request.headers['Authorization'], isNull);
+          expect(jsonDecode(request.body), {
+            'fullName': 'Ayesha Noor',
+            'emailOrPhone': 'ayesha@example.com',
+            'password': 'safe-test-password',
+            'role': 'patient',
+          });
+
+          return http.Response(jsonEncode({'data': _userJson}), 201);
+        },
+      );
+
+      final user = await dataSource.registerPatient(
+        fullName: ' Ayesha Noor ',
+        emailOrPhone: ' ayesha@example.com ',
+        password: 'safe-test-password',
+      );
+
+      expect(user.id, 'patient-001');
+      expect(tokenStore.writeCount, 0);
+    });
+
+    test('login rejects a success response without an access token', () async {
+      final tokenStore = _FakeAuthTokenStore();
+      final dataSource = _dataSource(
+        tokenStore: tokenStore,
+        handler: (_) async =>
+            http.Response(jsonEncode({'user': _userJson}), 200),
+      );
+
+      expect(
+        () => dataSource.login(
+          emailOrPhone: 'ayesha@example.com',
+          password: 'safe-test-password',
+        ),
+        throwsA(
+          isA<Exception>().having(
+            (error) => error.toString(),
+            'message',
+            contains('did not include an access token'),
+          ),
+        ),
+      );
+      expect(tokenStore.writeCount, 0);
+    });
+
     test('an unauthorized session clears the persisted token', () async {
       final tokenStore = _FakeAuthTokenStore(token: 'expired-token');
       final dataSource = _dataSource(

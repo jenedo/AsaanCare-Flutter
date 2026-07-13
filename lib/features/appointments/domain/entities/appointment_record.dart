@@ -23,6 +23,7 @@ class AppointmentRecord {
     required this.doctorSpecialty,
     required this.doctorImageAsset,
     required this.consultationType,
+    required this.appointmentDate,
     required this.dateLabel,
     required this.timeLabel,
     required this.totalFee,
@@ -37,6 +38,7 @@ class AppointmentRecord {
   final String doctorSpecialty;
   final String doctorImageAsset;
   final ConsultationType consultationType;
+  final DateTime appointmentDate;
   final String dateLabel;
   final String timeLabel;
   final int totalFee;

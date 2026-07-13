@@ -6,6 +6,7 @@ import 'core/app/app.dart';
 import 'core/di/service_locator.dart';
 import 'core/logging/app_logger.dart';
 import 'core/routes/app_routes.dart';
+import 'doctor/doctor_app.dart';
 import 'features/auth/presentation/controllers/auth_controller.dart';
 
 Future<void> main() async {
@@ -14,6 +15,12 @@ Future<void> main() async {
   if (!kIsWeb) {
     await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  }
+
+  const appMode = String.fromEnvironment('APP_MODE', defaultValue: 'patient');
+  if (appMode == 'doctor') {
+    runApp(const DoctorApp());
+    return;
   }
 
   try {

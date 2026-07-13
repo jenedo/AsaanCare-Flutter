@@ -18,4 +18,10 @@ class AppAssets {
   static const String patientPhone = 'assets/images/patient_phone.png';
   static const String doctorSupportCircle =
       'assets/images/doctor_support_circle.png';
+
+  static const String generalDoctor = 'assets/images/General Doctor.png';
+  static const String pediatrics = 'assets/images/Pediatrics.png';
+  static const String gynecology = 'assets/images/Gynecology.png';
+  static const String dentistry = 'assets/images/Dentistry.png';
+  static const String dermatology = 'assets/images/Dermatology.png';
 }

@@ -1,4 +1,4 @@
-enum ConsultationType { video, audio }
+enum ConsultationType { video, audio, chat, clinic }
 
 extension ConsultationTypeX on ConsultationType {
   String get title {
@@ -7,6 +7,10 @@ extension ConsultationTypeX on ConsultationType {
         return 'Video Call';
       case ConsultationType.audio:
         return 'Audio Call';
+      case ConsultationType.chat:
+        return 'Chat Session';
+      case ConsultationType.clinic:
+        return 'Clinic Visit';
     }
   }
 
@@ -16,6 +20,10 @@ extension ConsultationTypeX on ConsultationType {
         return 'Talk face to face';
       case ConsultationType.audio:
         return 'Talk over audio';
+      case ConsultationType.chat:
+        return 'Message the doctor';
+      case ConsultationType.clinic:
+        return 'Visit at the clinic';
     }
   }
 }

@@ -12,7 +12,15 @@ flutter run `
 
 No API secret belongs in Flutter. `API_BASE_URL` is configuration, not a secret.
 
-## Required auth endpoints
+## Implemented remote endpoints
+
+Remote mode currently wires only authentication. The doctors, appointments,
+prescriptions, pharmacy, wallet, and medical-record repositories still use
+in-app data sources even when `USE_MOCK_API=false`. Declaring a path in
+`ApiEndpoints` does not mean that the Flutter client calls it.
+
+The implemented routes are covered by request-contract tests in
+`test/features/auth/data/datasources/auth_remote_data_source_test.dart`.
 
 ### POST `/v1/auth/register`
 
@@ -82,6 +90,19 @@ Authorization: Bearer <accessToken>
 - `/v1/patients/me`
 - `/v1/health/readings`
 - `/v1/payments/intents`
+
+These routes are contract placeholders only. Before enabling any of them,
+add a typed remote data source, repository selection in the service locator,
+request/response models, authorization tests, non-2xx tests, and an integration
+test against the target backend environment.
+
+## Live verification
+
+Client tests verify URL construction, headers, JSON parsing, secure token
+persistence, status-code propagation, and the declared route format without
+calling a real service. A live backend can only be certified when a real
+`API_BASE_URL` and non-production test credentials are supplied. Never commit
+credentials or pass a production password through source code.
 
 ## Production requirements
 

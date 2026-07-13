@@ -30,6 +30,7 @@ class PatientHomeCard extends StatelessWidget {
             color: AppTheme.surface,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: AppTheme.border),
+            boxShadow: AppTheme.softShadow,
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -43,7 +44,7 @@ class PatientHomeCard extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: Color(0xFF07132D),
+                    color: AppTheme.textDark,
                     fontSize: 12.5,
                     height: 1.12,
                     fontWeight: FontWeight.w800,

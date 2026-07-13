@@ -46,6 +46,7 @@ app.*.map.json
 
 # Local generated caches and backups
 .dev_cache/
+.codex_tmp_appdata/
 lib_backup_before_lint_cleanup_*/
 pubspec.backup.yaml
 

@@ -18,7 +18,10 @@ void main() {
   test('loads, searches, filters and sorts doctors', () async {
     await controller.load();
 
-    expect(controller.visibleDoctors, hasLength(3));
+    expect(controller.visibleDoctors, hasLength(4));
+
+    controller.setQuery('anxiety');
+    expect(controller.visibleDoctors.single.id, 'hira');
 
     controller.setQuery('heart');
     expect(controller.visibleDoctors.single.id, 'ali');
@@ -73,6 +76,20 @@ class _FakeDoctorRepository implements DoctorRepository {
       reviewCount: 10,
       experienceYears: 5,
       consultationFee: 500,
+      patientsCount: 50,
+      about: '',
+      isVerified: true,
+    ),
+    Doctor(
+      id: 'hira',
+      name: 'Dr. Hira',
+      qualification: 'Mental health and anxiety specialist',
+      specialty: 'Psychiatrist',
+      imageAsset: '',
+      rating: 4.8,
+      reviewCount: 10,
+      experienceYears: 7,
+      consultationFee: 1000,
       patientsCount: 50,
       about: '',
       isVerified: true,
