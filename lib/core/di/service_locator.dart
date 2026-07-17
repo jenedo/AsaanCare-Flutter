@@ -2,6 +2,16 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 
+import '../../doctor/features/dashboard/data/datasources/doctor_dashboard_mock_data_source.dart';
+import '../../doctor/features/dashboard/data/repositories/doctor_dashboard_repository_impl.dart';
+import '../../doctor/features/dashboard/domain/repositories/doctor_dashboard_repository.dart';
+import '../../doctor/features/dashboard/domain/usecases/doctor_dashboard_usecases.dart';
+import '../../doctor/features/dashboard/presentation/controllers/doctor_dashboard_controller.dart';
+import '../../doctor/features/finance/data/datasources/doctor_finance_mock_data_source.dart';
+import '../../doctor/features/finance/data/repositories/doctor_finance_repository_impl.dart';
+import '../../doctor/features/finance/domain/repositories/doctor_finance_repository.dart';
+import '../../doctor/features/finance/domain/usecases/get_doctor_finance.dart';
+import '../../doctor/features/finance/presentation/controllers/doctor_finance_controller.dart';
 import '../../features/appointments/data/datasources/appointment_mock_data_source.dart';
 import '../../features/appointments/data/repositories/appointment_repository_impl.dart';
 import '../../features/appointments/domain/repositories/appointment_repository.dart';
@@ -100,6 +110,46 @@ Future<void> setupServiceLocator() async {
       registerPatient: sl<RegisterPatient>(),
       logoutUser: sl<LogoutUser>(),
     ),
+  );
+
+  // Doctor dashboard. Datasource/repository persist state for the signed-in
+  // session while controllers remain screen-scoped and disposable.
+  sl.registerLazySingleton<DoctorDashboardMockDataSource>(
+    DoctorDashboardMockDataSource.new,
+  );
+  sl.registerLazySingleton<DoctorDashboardRepository>(
+    () => DoctorDashboardRepositoryImpl(
+      dataSource: sl<DoctorDashboardMockDataSource>(),
+    ),
+  );
+  sl.registerLazySingleton<GetDoctorDashboard>(
+    () => GetDoctorDashboard(sl<DoctorDashboardRepository>()),
+  );
+  sl.registerLazySingleton<UpdateDoctorAppointmentStatus>(
+    () => UpdateDoctorAppointmentStatus(sl<DoctorDashboardRepository>()),
+  );
+  sl.registerFactory<DoctorDashboardController>(
+    () => DoctorDashboardController(
+      getDashboard: sl<GetDoctorDashboard>(),
+      updateAppointmentStatus: sl<UpdateDoctorAppointmentStatus>(),
+    ),
+  );
+
+  // Doctor earnings and wallet. Money-moving capabilities stay gated until
+  // authenticated payout APIs are available.
+  sl.registerLazySingleton<DoctorFinanceMockDataSource>(
+    DoctorFinanceMockDataSource.new,
+  );
+  sl.registerLazySingleton<DoctorFinanceRepository>(
+    () => DoctorFinanceRepositoryImpl(
+      dataSource: sl<DoctorFinanceMockDataSource>(),
+    ),
+  );
+  sl.registerLazySingleton<GetDoctorFinance>(
+    () => GetDoctorFinance(sl<DoctorFinanceRepository>()),
+  );
+  sl.registerFactory<DoctorFinanceController>(
+    () => DoctorFinanceController(getFinance: sl<GetDoctorFinance>()),
   );
 
   // Doctors

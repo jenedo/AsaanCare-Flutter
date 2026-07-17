@@ -1,3 +1,4 @@
+/*
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -147,4 +148,72 @@ void main() {
       expect(find.text('Dr. Sara Khan'), findsOneWidget);
     },
   );
+}
+*/
+
+import 'package:asaancare/doctor/features/dashboard/domain/entities/doctor_dashboard_snapshot.dart';
+import 'package:asaancare/doctor/screens/dashboard/widgets/doctor_home_content.dart';
+import 'package:asaancare/doctor/screens/earnings/doctor_earnings_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'support/doctor_test_harness.dart';
+
+void main() {
+  test('greeting boundaries follow local time', () {
+    expect(doctorGreetingForHour(4), 'Good Night');
+    expect(doctorGreetingForHour(5), 'Good Morning');
+    expect(doctorGreetingForHour(12), 'Good Afternoon');
+    expect(doctorGreetingForHour(17), 'Good Evening');
+    expect(doctorGreetingForHour(21), 'Good Night');
+  });
+
+  testWidgets('dashboard compact layout', (tester) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    final harness = await pumpDoctorDashboard(
+      tester,
+      size: const Size(320, 760),
+    );
+    addTearDown(harness.dispose);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('overview earnings selects canonical earnings', (tester) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    final harness = await pumpDoctorDashboard(tester);
+    addTearDown(harness.dispose);
+    await tester.tap(find.byKey(const ValueKey('overview-earnings')));
+    await tester.pumpAndSettle();
+    expect(find.byType(DoctorEarningsScreen), findsOneWidget);
+    expect(find.byKey(const ValueKey('doctor-earnings')), findsOneWidget);
+    expect(find.text('Total earnings'), findsOneWidget);
+
+    await tester.tap(find.text('Home').last);
+    await tester.pumpAndSettle();
+    final quick = find.byKey(const ValueKey('quick-earnings'));
+    await tester.ensureVisible(quick);
+    await tester.tap(quick);
+    await tester.pumpAndSettle();
+    expect(find.text('Total earnings'), findsOneWidget);
+
+    await tester.tap(find.text('Home').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Earnings').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Total earnings'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsOneWidget);
+  });
+
+  testWidgets('pending overview selects schedule filter', (tester) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    final harness = await pumpDoctorDashboard(tester);
+    addTearDown(harness.dispose);
+    await tester.tap(find.byKey(const ValueKey('overview-pending')));
+    await tester.pumpAndSettle();
+    expect(
+      harness.dashboard.appointmentFilter,
+      DoctorAppointmentFilter.pending,
+    );
+    expect(find.text('Appointments'), findsOneWidget);
+  });
 }
