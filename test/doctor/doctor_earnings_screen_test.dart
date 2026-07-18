@@ -31,17 +31,19 @@ void main() {
       expect(find.text('PKR 28,500'), findsWidgets);
       expect(find.text('Open wallet'), findsOneWidget);
       expect(tester.takeException(), isNull);
+      if (size == const Size(768, 1024)) {
+        expect(find.text('Earnings summary'), findsOneWidget);
+        await tester.scrollUntilVisible(
+          find.text('Recent transactions'),
+          500,
+          scrollable: find.byType(Scrollable).last,
+        );
+        await tester.pump(const Duration(milliseconds: 300));
+        expect(find.text('Recent transactions'), findsOneWidget);
+      }
       await tester.pumpWidget(const SizedBox.shrink());
       harness.dispose();
     }
-
-    expect(find.text('Earnings summary'), findsOneWidget);
-    await tester.drag(
-      find.byKey(const PageStorageKey('doctor-earnings-scroll')),
-      const Offset(0, -700),
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('Recent transactions'), findsOneWidget);
   });
 
   testWidgets('earnings tabs switch to a lazy transaction history', (

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:asaancare/doctor/features/finance/data/datasources/doctor_finance_mock_data_source.dart';
 import 'package:asaancare/doctor/features/finance/data/repositories/doctor_finance_repository_impl.dart';
 import 'package:asaancare/doctor/features/finance/domain/entities/doctor_finance_snapshot.dart';
+import 'package:asaancare/doctor/features/finance/domain/repositories/doctor_finance_repository.dart';
 import 'package:asaancare/doctor/features/finance/domain/usecases/get_doctor_finance.dart';
 import 'package:asaancare/doctor/features/finance/presentation/controllers/doctor_finance_controller.dart';
 
@@ -13,6 +14,12 @@ void main() {
     final repository = DoctorFinanceRepositoryImpl(
       dataSource: DoctorFinanceMockDataSource(),
     );
+    return DoctorFinanceController(getFinance: GetDoctorFinance(repository));
+  }
+
+  DoctorFinanceController buildControllerWithRepository(
+    DoctorFinanceRepository repository,
+  ) {
     return DoctorFinanceController(getFinance: GetDoctorFinance(repository));
   }
 
@@ -70,4 +77,64 @@ void main() {
     expect(controller.canTransfer, isFalse);
     expect(controller.snapshot!.payoutMethods, isNotEmpty);
   });
+
+  test('reports empty when the repository has no transactions', () async {
+    final controller = buildControllerWithRepository(
+      _FinanceRepositoryStub(snapshot: _emptyFinanceSnapshot()),
+    );
+
+    await controller.load(doctorId: doctorId);
+
+    expect(controller.status, DoctorFinanceLoadStatus.empty);
+    expect(controller.snapshot, isNotNull);
+    expect(controller.filteredTransactions, isEmpty);
+    expect(controller.errorMessage, isNull);
+  });
+
+  test('reports a safe failure message when loading throws', () async {
+    final controller = buildControllerWithRepository(
+      _FinanceRepositoryStub(error: StateError('private payout detail')),
+    );
+
+    await controller.load(doctorId: doctorId);
+
+    expect(controller.status, DoctorFinanceLoadStatus.failure);
+    expect(controller.snapshot, isNull);
+    expect(controller.errorMessage, 'Could not load earnings. Please retry.');
+    expect(controller.errorMessage, isNot(contains('private payout detail')));
+  });
+}
+
+DoctorFinanceSnapshot _emptyFinanceSnapshot() {
+  return DoctorFinanceSnapshot(
+    period: DoctorFinancePeriod.thisMonth,
+    totalEarningsPkr: 0,
+    availableBalancePkr: 0,
+    pendingPayoutPkr: 0,
+    withdrawnPkr: 0,
+    platformFeesPkr: 0,
+    consultationCount: 0,
+    growthPercent: 0,
+    transactions: const <DoctorFinanceTransaction>[],
+    breakdown: const <DoctorEarningsBreakdown>[],
+    payoutMethods: const <DoctorPayoutMethod>[],
+    nextPayoutAt: null,
+  );
+}
+
+class _FinanceRepositoryStub implements DoctorFinanceRepository {
+  const _FinanceRepositoryStub({this.snapshot, this.error});
+
+  final DoctorFinanceSnapshot? snapshot;
+  final Object? error;
+
+  @override
+  Future<DoctorFinanceSnapshot> getFinance({
+    required String doctorId,
+    required DoctorFinancePeriod period,
+  }) {
+    final failure = error;
+    if (failure != null) return Future<DoctorFinanceSnapshot>.error(failure);
+    return Future<DoctorFinanceSnapshot>.value(snapshot!);
+  }
 }

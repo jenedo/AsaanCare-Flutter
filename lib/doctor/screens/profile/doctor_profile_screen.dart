@@ -979,37 +979,70 @@ class _ProfileCard extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 18),
-        Row(
-          children: [
-            const Text(
-              '85%',
-              style: TextStyle(
-                color: _Colors.teal,
-                fontSize: 22,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(width: 8),
-            const Expanded(
-              child: LinearProgressIndicator(
-                value: 0.85,
-                minHeight: 6,
-                borderRadius: BorderRadius.all(Radius.circular(99)),
-                color: _Colors.teal,
-                backgroundColor: Color(0xFFD7EEF0),
-              ),
-            ),
-            const SizedBox(width: 12),
-            OutlinedButton.icon(
-              onPressed: onEdit,
-              icon: const Icon(Icons.edit_outlined, size: 18),
-              label: const Text('Edit profile'),
-            ),
-          ],
-        ),
+        _ProfileCompletion(onEdit: onEdit),
       ],
     ),
   );
+}
+
+class _ProfileCompletion extends StatelessWidget {
+  const _ProfileCompletion({required this.onEdit});
+
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    const percentage = Text(
+      '85%',
+      style: TextStyle(
+        color: _Colors.teal,
+        fontSize: 22,
+        fontWeight: FontWeight.w900,
+      ),
+    );
+    const progress = LinearProgressIndicator(
+      value: 0.85,
+      minHeight: 6,
+      borderRadius: BorderRadius.all(Radius.circular(99)),
+      color: _Colors.teal,
+      backgroundColor: Color(0xFFD7EEF0),
+    );
+    final edit = OutlinedButton.icon(
+      onPressed: onEdit,
+      icon: const Icon(Icons.edit_outlined, size: 18),
+      label: const Text('Edit profile'),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 360) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Row(
+                children: [
+                  percentage,
+                  SizedBox(width: 8),
+                  Expanded(child: progress),
+                ],
+              ),
+              const SizedBox(height: 10),
+              edit,
+            ],
+          );
+        }
+        return Row(
+          children: [
+            percentage,
+            const SizedBox(width: 8),
+            const Expanded(child: progress),
+            const SizedBox(width: 12),
+            edit,
+          ],
+        );
+      },
+    );
+  }
 }
 
 class _StatsCard extends StatelessWidget {

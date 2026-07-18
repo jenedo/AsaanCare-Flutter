@@ -667,6 +667,7 @@ class _PendingRequestCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Card(
+      key: ValueKey('pending-request-${appointment.id}'),
       margin: EdgeInsets.zero,
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -763,6 +764,7 @@ class _AppointmentCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final inProgress = appointment.status == DoctorAppointmentStatus.inProgress;
+    final compactAction = MediaQuery.sizeOf(context).width < 430;
     return Card(
       margin: EdgeInsets.zero,
       elevation: 0,
@@ -845,20 +847,46 @@ class _AppointmentCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    FilledButton.tonal(
-                      onPressed:
-                          isLoading ||
-                              appointment.status ==
-                                  DoctorAppointmentStatus.confirmed
-                          ? null
-                          : onAction,
-                      child: isLoading
-                          ? const SizedBox.square(
-                              dimension: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text(_actionLabel(appointment.status)),
-                    ),
+                    if (compactAction)
+                      IconButton.filledTonal(
+                        tooltip: _actionLabel(appointment.status),
+                        onPressed:
+                            isLoading ||
+                                appointment.status ==
+                                    DoctorAppointmentStatus.confirmed
+                            ? null
+                            : onAction,
+                        icon: isLoading
+                            ? const SizedBox.square(
+                                dimension: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Icon(
+                                appointment.status ==
+                                        DoctorAppointmentStatus.completed
+                                    ? Icons.description_outlined
+                                    : Icons.play_arrow_rounded,
+                              ),
+                      )
+                    else
+                      FilledButton.tonal(
+                        onPressed:
+                            isLoading ||
+                                appointment.status ==
+                                    DoctorAppointmentStatus.confirmed
+                            ? null
+                            : onAction,
+                        child: isLoading
+                            ? const SizedBox.square(
+                                dimension: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(_actionLabel(appointment.status)),
+                      ),
                   ],
                 ),
               ),

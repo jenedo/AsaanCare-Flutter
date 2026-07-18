@@ -1,156 +1,3 @@
-/*
-import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
-
-import 'package:asaancare/doctor/doctor_app.dart';
-
-Future<void> _pumpDoctorApp(WidgetTester tester, Size size) async {
-  tester.view.devicePixelRatio = 1;
-  tester.view.physicalSize = size;
-  await tester.pumpWidget(const DoctorApp());
-  await tester.pump(const Duration(milliseconds: 500));
-  expect(tester.takeException(), isNull);
-}
-
-void main() {
-  testWidgets('doctor dashboard renders without overflow on mobile widths', (
-    tester,
-  ) async {
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    for (final width in <double>[320, 360, 393, 430]) {
-      await _pumpDoctorApp(tester, Size(width, 800));
-    }
-  });
-
-  testWidgets('doctor dashboard request and navigation controls work', (
-    tester,
-  ) async {
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    await _pumpDoctorApp(tester, const Size(393, 800));
-
-    expect(find.text('Ahmed Hassan'), findsWidgets);
-    await tester.tap(find.widgetWithText(FilledButton, 'Accept').first);
-    await tester.pumpAndSettle();
-    expect(find.text('Pending Requests'), findsOneWidget);
-
-    await tester.tap(find.text('Patients').last);
-    await tester.pumpAndSettle();
-    expect(find.text('Your recent patient records'), findsOneWidget);
-
-    await tester.tap(find.text('Home').last);
-    await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Use dark theme'));
-    await tester.pumpAndSettle();
-    final materialApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
-    expect(materialApp.themeMode, ThemeMode.dark);
-  });
-
-  testWidgets('doctor opens a patient record from a home appointment card', (
-    tester,
-  ) async {
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    await _pumpDoctorApp(tester, const Size(393, 800));
-
-    final patientCard = find.byKey(
-      const ValueKey('home-patient-ahmed-appointment'),
-    );
-    await tester.scrollUntilVisible(patientCard, 220);
-    await tester.tap(patientCard);
-    await tester.pumpAndSettle();
-
-    expect(find.text('Ahmed Hassan'), findsOneWidget);
-    expect(find.text('Personal Information'), findsOneWidget);
-    expect(find.text('Start Consultation'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('patients page uses searchable clinical patient cards', (
-    tester,
-  ) async {
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    await _pumpDoctorApp(tester, const Size(393, 800));
-
-    await tester.tap(find.text('Patients').last);
-    await tester.pumpAndSettle();
-
-    expect(find.text('4 patient records'), findsOneWidget);
-    expect(find.text('Next: Today, 10:30 AM'), findsOneWidget);
-    expect(find.text('5 visits'), findsOneWidget);
-
-    await tester.enterText(
-      find.byKey(const ValueKey('patient-search-field')),
-      'Fatima',
-    );
-    await tester.pump();
-
-    expect(find.text('Fatima Ali'), findsOneWidget);
-    expect(find.text('Ahmed Hassan'), findsNothing);
-    expect(find.text('1 patient record'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('home prescribe opens the full prescription workflow', (
-    tester,
-  ) async {
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    await _pumpDoctorApp(tester, const Size(393, 800));
-
-    await tester.tap(find.text('Prescribe'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Write Prescription'), findsOneWidget);
-    expect(find.text('1. Diagnosis & Chief Complaint'), findsOneWidget);
-    final medicinesSection = find.text('3. Medicines');
-    await tester.scrollUntilVisible(
-      medicinesSection,
-      280,
-      scrollable: find.byType(Scrollable).last,
-    );
-    expect(medicinesSection, findsOneWidget);
-    expect(find.text('Send Prescription'), findsOneWidget);
-    expect(find.byType(BottomSheet), findsNothing);
-  });
-
-  testWidgets(
-    'appointments search, filters, actions, and back navigation work',
-    (tester) async {
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      await _pumpDoctorApp(tester, const Size(393, 800));
-
-      await tester.tap(find.text('Schedule').last);
-      await tester.pumpAndSettle();
-      expect(find.text('Appointments'), findsOneWidget);
-      expect(find.text('12'), findsOneWidget);
-
-      await tester.enterText(find.byType(TextField), 'Fatima');
-      await tester.pump();
-      expect(find.text('Fatima Malik'), findsOneWidget);
-      expect(find.text('Ahmed Hassan'), findsNothing);
-
-      await tester.enterText(find.byType(TextField), '');
-      await tester.tap(find.widgetWithText(ChoiceChip, 'Pending'));
-      await tester.pumpAndSettle();
-      expect(find.text('Ahmed Hassan'), findsOneWidget);
-
-      await tester.tap(find.text('Accept').first);
-      await tester.pumpAndSettle();
-      expect(find.text('Ahmed Hassan'), findsNothing);
-
-      await tester.tap(find.byTooltip('Back to doctor home'));
-      await tester.pumpAndSettle();
-      expect(find.text('Dr. Sara Khan'), findsOneWidget);
-    },
-  );
-}
-*/
-
 import 'package:asaancare/doctor/features/dashboard/domain/entities/doctor_dashboard_snapshot.dart';
 import 'package:asaancare/doctor/screens/dashboard/widgets/doctor_home_content.dart';
 import 'package:asaancare/doctor/screens/earnings/doctor_earnings_screen.dart';
@@ -168,52 +15,165 @@ void main() {
     expect(doctorGreetingForHour(21), 'Good Night');
   });
 
-  testWidgets('dashboard compact layout', (tester) async {
+  testWidgets('dashboard renders across compact, tablet, and web widths', (
+    tester,
+  ) async {
     addTearDown(tester.view.resetPhysicalSize);
-    final harness = await pumpDoctorDashboard(
-      tester,
-      size: const Size(320, 760),
-    );
-    addTearDown(harness.dispose);
-    expect(tester.takeException(), isNull);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    for (final size in <Size>[
+      const Size(320, 760),
+      const Size(360, 800),
+      const Size(393, 852),
+      const Size(430, 932),
+      const Size(768, 1024),
+      const Size(1200, 900),
+    ]) {
+      final harness = await pumpDoctorDashboard(tester, size: size);
+      expect(find.text('Dr. Sara Khan'), findsOneWidget);
+      expect(find.text("Today's Overview"), findsOneWidget);
+      expect(tester.takeException(), isNull, reason: 'Failed at $size');
+      await tester.pumpWidget(const SizedBox.shrink());
+      harness.dispose();
+    }
   });
 
-  testWidgets('overview earnings selects canonical earnings', (tester) async {
-    addTearDown(tester.view.resetPhysicalSize);
+  testWidgets('all Earnings entries select the canonical index-3 screen', (
+    tester,
+  ) async {
     final harness = await pumpDoctorDashboard(tester);
     addTearDown(harness.dispose);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    Future<void> verifyEarnings() async {
+      await tester.pumpAndSettle();
+      expect(find.byType(DoctorEarningsScreen), findsOneWidget);
+      expect(find.byKey(const ValueKey('doctor-earnings')), findsOneWidget);
+      expect(find.text('Total earnings'), findsOneWidget);
+      expect(find.byType(NavigationBar), findsOneWidget);
+    }
+
     await tester.tap(find.byKey(const ValueKey('overview-earnings')));
-    await tester.pumpAndSettle();
-    expect(find.byType(DoctorEarningsScreen), findsOneWidget);
-    expect(find.byKey(const ValueKey('doctor-earnings')), findsOneWidget);
-    expect(find.text('Total earnings'), findsOneWidget);
+    await verifyEarnings();
 
     await tester.tap(find.text('Home').last);
     await tester.pumpAndSettle();
-    final quick = find.byKey(const ValueKey('quick-earnings'));
-    await tester.ensureVisible(quick);
-    await tester.tap(quick);
-    await tester.pumpAndSettle();
-    expect(find.text('Total earnings'), findsOneWidget);
+    final quickEarnings = find.byKey(const ValueKey('quick-earnings'));
+    await tester.ensureVisible(quickEarnings);
+    await tester.tap(quickEarnings);
+    await verifyEarnings();
 
     await tester.tap(find.text('Home').last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Earnings').last);
-    await tester.pumpAndSettle();
-    expect(find.text('Total earnings'), findsOneWidget);
-    expect(find.byType(NavigationBar), findsOneWidget);
+    await verifyEarnings();
   });
 
-  testWidgets('pending overview selects schedule filter', (tester) async {
-    addTearDown(tester.view.resetPhysicalSize);
+  testWidgets('overview metrics select the expected schedule filter', (
+    tester,
+  ) async {
     final harness = await pumpDoctorDashboard(tester);
     addTearDown(harness.dispose);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.tap(find.byKey(const ValueKey('overview-pending')));
     await tester.pumpAndSettle();
     expect(
       harness.dashboard.appointmentFilter,
       DoctorAppointmentFilter.pending,
     );
-    expect(find.text('Appointments'), findsOneWidget);
+
+    await tester.tap(find.text('Home').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('overview-completed')));
+    await tester.pumpAndSettle();
+    expect(
+      harness.dashboard.appointmentFilter,
+      DoctorAppointmentFilter.completed,
+    );
+
+    await tester.tap(find.text('Home').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('overview-appointments')));
+    await tester.pumpAndSettle();
+    expect(harness.dashboard.appointmentFilter, DoctorAppointmentFilter.all);
   });
+
+  testWidgets('notifications, dark mode, and profile stay in the shell', (
+    tester,
+  ) async {
+    final harness = await pumpDoctorDashboard(tester);
+    addTearDown(harness.dispose);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.tap(find.byTooltip('Open notifications'));
+    await tester.pumpAndSettle();
+    expect(find.text('Notifications'), findsOneWidget);
+    await tester.tapAt(const Offset(8, 8));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Use dark theme'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode,
+      ThemeMode.dark,
+    );
+
+    await tester.tap(find.text('Profile').last);
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationBar), findsOneWidget);
+  });
+
+  testWidgets(
+    'request actions show progress and reject requires confirmation',
+    (tester) async {
+      final harness = await pumpDoctorDashboard(
+        tester,
+        actionDelay: const Duration(milliseconds: 300),
+      );
+      addTearDown(harness.dispose);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final initialCount = harness.dashboard.pendingRequests.length;
+      final firstRequestId = harness.dashboard.pendingRequests.first.id;
+
+      await tester.drag(
+        find.byKey(const PageStorageKey('doctor-home-scroll')),
+        const Offset(0, -520),
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+      final firstRequest = find.byKey(
+        ValueKey('pending-request-$firstRequestId'),
+      );
+      final accept = find.descendant(
+        of: firstRequest,
+        matching: find.byType(FilledButton),
+      );
+      await tester.tap(accept);
+      await tester.pump();
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      await tester.tap(accept, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(harness.dashboard.pendingRequests.length, initialCount - 1);
+
+      final secondRequestId = harness.dashboard.pendingRequests.first.id;
+      final secondRequest = find.byKey(
+        ValueKey('pending-request-$secondRequestId'),
+      );
+      await tester.tap(
+        find.descendant(
+          of: secondRequest,
+          matching: find.byType(OutlinedButton),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Reject request?'), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, 'Reject'));
+      await tester.pumpAndSettle();
+      expect(harness.dashboard.pendingRequests.length, initialCount - 2);
+    },
+  );
 }
