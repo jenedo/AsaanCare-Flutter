@@ -257,43 +257,93 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
         controller: widget.dashboardController,
         onPatientTap: _openPatient,
       ),
-      DoctorEarningsScreen(controller: widget.financeController),
+      DoctorEarningsScreen(
+        controller: widget.financeController,
+        dashboardController: widget.dashboardController,
+      ),
       const DoctorProfileScreen(showBackButton: false),
     ];
 
+    const navTeal = Color(0xFF006D5B);
+    const navMuted = Color(0xFF6F8588);
+
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F7F6),
       body: IndexedStack(index: _selectedIndex, children: pages),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: _selectTab,
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home_rounded),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.calendar_month_outlined),
-            selectedIcon: Icon(Icons.calendar_month_rounded),
-            label: 'Schedule',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.people_outline_rounded),
-            selectedIcon: Icon(Icons.people_alt_rounded),
-            label: 'Patients',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.account_balance_wallet_outlined),
-            selectedIcon: Icon(Icons.account_balance_wallet_rounded),
-            label: 'Earnings',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.account_circle_outlined),
-            selectedIcon: Icon(Icons.account_circle_rounded),
-            label: 'Profile',
-          ),
-        ],
+      bottomNavigationBar: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 360;
+          return NavigationBarTheme(
+            data: NavigationBarThemeData(
+              height: compact ? 64 : 70,
+              backgroundColor: Colors.white,
+              elevation: 8,
+              shadowColor: const Color(0x180D5C63),
+              indicatorColor: const Color(0xFFE7F6F4),
+              indicatorShape: const CircleBorder(),
+              labelTextStyle: WidgetStateProperty.resolveWith((states) {
+                final selected = states.contains(WidgetState.selected);
+                return TextStyle(
+                  color: selected ? navTeal : navMuted,
+                  fontSize: compact ? 9 : 11,
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                );
+              }),
+              iconTheme: WidgetStateProperty.resolveWith((states) {
+                final selected = states.contains(WidgetState.selected);
+                return IconThemeData(
+                  color: selected ? navTeal : navMuted,
+                  size: compact ? 20 : 22,
+                );
+              }),
+            ),
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(top: BorderSide(color: Color(0xFFE8EEEE))),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x140D5C63),
+                    blurRadius: 16,
+                    offset: Offset(0, -4),
+                  ),
+                ],
+              ),
+              child: NavigationBar(
+                selectedIndex: _selectedIndex,
+                onDestinationSelected: _selectTab,
+                labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+                destinations: const [
+                  NavigationDestination(
+                    icon: Icon(Icons.home_outlined),
+                    selectedIcon: Icon(Icons.home_rounded),
+                    label: 'Home',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.calendar_today_outlined),
+                    selectedIcon: Icon(Icons.calendar_month_rounded),
+                    label: 'Schedule',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.group_outlined),
+                    selectedIcon: Icon(Icons.group_rounded),
+                    label: 'Patients',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.attach_money_rounded),
+                    selectedIcon: Icon(Icons.attach_money_rounded),
+                    label: 'Earnings',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.person_outline_rounded),
+                    selectedIcon: Icon(Icons.person_rounded),
+                    label: 'Profile',
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

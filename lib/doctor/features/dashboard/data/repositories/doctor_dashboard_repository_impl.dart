@@ -24,4 +24,15 @@ class DoctorDashboardRepositoryImpl implements DoctorDashboardRepository {
       status: status,
     );
   }
+
+  @override
+  Future<DoctorDashboardSnapshot> updateAvailability({
+    required String doctorId,
+    required bool isOnline,
+  }) {
+    return dataSource.updateAvailability(
+      doctorId: doctorId,
+      isOnline: isOnline,
+    );
+  }
 }

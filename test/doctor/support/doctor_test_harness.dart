@@ -40,6 +40,7 @@ DoctorTestHarness createDoctorTestHarness({
       updateAppointmentStatus: UpdateDoctorAppointmentStatus(
         dashboardRepository,
       ),
+      updateAvailability: UpdateDoctorAvailability(dashboardRepository),
     ),
     finance: DoctorFinanceController(
       getFinance: GetDoctorFinance(financeRepository),

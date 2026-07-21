@@ -1,6 +1,83 @@
 enum DoctorFinanceLoadStatus { initial, loading, ready, empty, failure }
 
-enum DoctorFinancePeriod { thisMonth, lastThreeMonths, thisYear }
+enum DoctorFinancePeriod { thisMonth, lastMonth, thisWeek, custom }
+
+/// Inclusive calendar range used for period filtering and growth comparison.
+class FinanceDateRange {
+  const FinanceDateRange({required this.start, required this.end});
+
+  final DateTime start;
+  final DateTime end;
+
+  bool contains(DateTime value) =>
+      !value.isBefore(start) && !value.isAfter(end);
+}
+
+/// Inclusive calendar-day range for a finance period.
+FinanceDateRange resolveFinancePeriodRange(
+  DoctorFinancePeriod period, {
+  required DateTime now,
+  FinanceDateRange? customRange,
+}) {
+  final today = DateTime(now.year, now.month, now.day);
+  return switch (period) {
+    DoctorFinancePeriod.thisMonth => FinanceDateRange(
+      start: DateTime(now.year, now.month, 1),
+      end: today
+          .add(const Duration(days: 1))
+          .subtract(const Duration(milliseconds: 1)),
+    ),
+    DoctorFinancePeriod.lastMonth => () {
+      final start = DateTime(now.year, now.month - 1, 1);
+      final end = DateTime(
+        now.year,
+        now.month,
+        1,
+      ).subtract(const Duration(milliseconds: 1));
+      return FinanceDateRange(start: start, end: end);
+    }(),
+    DoctorFinancePeriod.thisWeek => () {
+      final weekday = today.weekday; // Mon=1
+      final start = today.subtract(Duration(days: weekday - 1));
+      return FinanceDateRange(
+        start: start,
+        end: today
+            .add(const Duration(days: 1))
+            .subtract(const Duration(milliseconds: 1)),
+      );
+    }(),
+    DoctorFinancePeriod.custom =>
+      customRange ??
+          FinanceDateRange(
+            start: today.subtract(const Duration(days: 7)),
+            end: today,
+          ),
+  };
+}
+
+/// The immediately preceding period used for growth percentage.
+FinanceDateRange previousFinancePeriodRange(
+  DoctorFinancePeriod period, {
+  required FinanceDateRange current,
+}) {
+  return switch (period) {
+    DoctorFinancePeriod.thisMonth || DoctorFinancePeriod.lastMonth =>
+      FinanceDateRange(
+        start: DateTime(current.start.year, current.start.month - 1, 1),
+        end: current.start.subtract(const Duration(milliseconds: 1)),
+      ),
+    DoctorFinancePeriod.thisWeek => FinanceDateRange(
+      start: current.start.subtract(const Duration(days: 7)),
+      end: current.start.subtract(const Duration(milliseconds: 1)),
+    ),
+    DoctorFinancePeriod.custom => () {
+      final length = current.end.difference(current.start);
+      final end = current.start.subtract(const Duration(milliseconds: 1));
+      final start = end.subtract(length);
+      return FinanceDateRange(start: start, end: end);
+    }(),
+  };
+}
 
 enum DoctorWalletFilter { all, credits, debits }
 
@@ -91,8 +168,9 @@ class DoctorFinanceSnapshot {
 extension DoctorFinancePeriodLabel on DoctorFinancePeriod {
   String get label => switch (this) {
     DoctorFinancePeriod.thisMonth => 'This month',
-    DoctorFinancePeriod.lastThreeMonths => 'Last 3 months',
-    DoctorFinancePeriod.thisYear => 'This year',
+    DoctorFinancePeriod.lastMonth => 'Last month',
+    DoctorFinancePeriod.thisWeek => 'This week',
+    DoctorFinancePeriod.custom => 'Custom range',
   };
 }
 

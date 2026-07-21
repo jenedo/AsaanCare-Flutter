@@ -38,6 +38,48 @@ void main() {
     }
   });
 
+  testWidgets(
+    'header uses the real doctor photo and availability is interactive',
+    (tester) async {
+      final harness = await pumpDoctorDashboard(tester);
+      addTearDown(harness.dispose);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final avatar = tester.widget<CircleAvatar>(
+        find.byKey(const ValueKey('doctor-profile-image')),
+      );
+      expect(
+        (avatar.backgroundImage! as AssetImage).assetName,
+        'assets/images/doctor_sara.png',
+      );
+      expect(find.text('SK'), findsNothing);
+
+      Switch availabilitySwitch() => tester.widget<Switch>(
+        find.byKey(const ValueKey('doctor-availability-switch')),
+      );
+
+      expect(availabilitySwitch().value, isTrue);
+      await tester.tap(
+        find.byKey(const ValueKey('doctor-availability-switch')),
+      );
+      await tester.pumpAndSettle();
+      expect(availabilitySwitch().value, isFalse);
+      expect(find.text('Not Available for Consultation'), findsOneWidget);
+
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('next-consultation-card')),
+        500,
+        scrollable: find.byType(Scrollable).last,
+      );
+      expect(
+        find.byKey(const ValueKey('next-consultation-card')),
+        findsOneWidget,
+      );
+      expect(find.text('NEXT CONSULTATION'), findsOneWidget);
+    },
+  );
+
   testWidgets('all Earnings entries select the canonical index-3 screen', (
     tester,
   ) async {

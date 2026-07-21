@@ -38,10 +38,24 @@ void main() {
     final controller = buildController();
     await controller.load(doctorId: doctorId);
 
-    await controller.changePeriod(DoctorFinancePeriod.lastThreeMonths);
+    await controller.changePeriod(DoctorFinancePeriod.lastMonth);
 
-    expect(controller.period, DoctorFinancePeriod.lastThreeMonths);
-    expect(controller.snapshot!.period, DoctorFinancePeriod.lastThreeMonths);
+    expect(controller.period, DoctorFinancePeriod.lastMonth);
+    expect(controller.snapshot!.period, DoctorFinancePeriod.lastMonth);
+  });
+
+  test('growth percent is derived from current vs previous period totals', () async {
+    final controller = buildController();
+    await controller.load(doctorId: doctorId);
+    final thisMonthTotal = controller.snapshot!.totalEarningsPkr;
+    final thisMonthGrowth = controller.snapshot!.growthPercent;
+
+    await controller.changePeriod(DoctorFinancePeriod.lastMonth);
+    final lastMonthTotal = controller.snapshot!.totalEarningsPkr;
+
+    expect(thisMonthGrowth.isFinite, isTrue);
+    // Different calendar windows produce different deterministic totals.
+    expect(lastMonthTotal, isNot(thisMonthTotal));
   });
 
   test('wallet filters separate credits and debits', () async {
@@ -132,6 +146,7 @@ class _FinanceRepositoryStub implements DoctorFinanceRepository {
   Future<DoctorFinanceSnapshot> getFinance({
     required String doctorId,
     required DoctorFinancePeriod period,
+    FinanceDateRange? customRange,
   }) {
     final failure = error;
     if (failure != null) return Future<DoctorFinanceSnapshot>.error(failure);

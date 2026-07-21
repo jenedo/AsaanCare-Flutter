@@ -28,3 +28,19 @@ class UpdateDoctorAppointmentStatus {
     );
   }
 }
+
+class UpdateDoctorAvailability {
+  const UpdateDoctorAvailability(this._repository);
+
+  final DoctorDashboardRepository _repository;
+
+  Future<DoctorDashboardSnapshot> call({
+    required String doctorId,
+    required bool isOnline,
+  }) {
+    return _repository.updateAvailability(
+      doctorId: doctorId,
+      isOnline: isOnline,
+    );
+  }
+}

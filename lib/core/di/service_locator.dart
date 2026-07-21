@@ -128,10 +128,14 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<UpdateDoctorAppointmentStatus>(
     () => UpdateDoctorAppointmentStatus(sl<DoctorDashboardRepository>()),
   );
+  sl.registerLazySingleton<UpdateDoctorAvailability>(
+    () => UpdateDoctorAvailability(sl<DoctorDashboardRepository>()),
+  );
   sl.registerFactory<DoctorDashboardController>(
     () => DoctorDashboardController(
       getDashboard: sl<GetDoctorDashboard>(),
       updateAppointmentStatus: sl<UpdateDoctorAppointmentStatus>(),
+      updateAvailability: sl<UpdateDoctorAvailability>(),
     ),
   );
 

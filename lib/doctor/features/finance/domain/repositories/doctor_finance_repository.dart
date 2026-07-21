@@ -4,5 +4,6 @@ abstract class DoctorFinanceRepository {
   Future<DoctorFinanceSnapshot> getFinance({
     required String doctorId,
     required DoctorFinancePeriod period,
+    FinanceDateRange? customRange,
   });
 }

@@ -1,0 +1,72 @@
+---
+description: AsaanCare doctor app UI design system + crash-proofing rules
+globs: ["lib/doctor/**", "lib/shared/**"]
+alwaysApply: false
+---
+
+# AsaanCare Doctor App UI
+
+Reference design source of truth: Doctor Home (appointment queue) + Doctor Dashboard (Dr. Sara Khan overview).
+
+## Working rules
+- One screen/component per session. Do not build all doctor screens in a single pass.
+- Zero placeholders. If a widget cannot be finished in one pass, say so explicitly and stop. Never write `// TODO` or `// rest of the code here`.
+
+## Design tokens
+Reuse existing tokens first. Prefer `AppColors` (see `lib/doctor/screens/earnings/dashboard.dart`) and any existing `AppTextStyles`/`AppSpacing`. Only add a new token when one is genuinely missing, and add it centrally rather than hardcoding new hex/magic numbers per file (color drift was cleaned up once already).
+
+| Role | Where it appears | Token intent |
+|---|---|---|
+| Primary teal | Active nav, "Start" outline buttons, links, "See All" | `AppColors.primary` |
+| Header gradient (dark teal to teal) | Dashboard top card, "Next Consultation" card | 2-stop gradient, top-left to bottom-right |
+| Success green | "In Progress" pill, "Accept", "Completed", "Confirmed" | `AppColors.success` |
+| Warning orange | "Pending" stat, "Requested Xmin ago" | `AppColors.warning` |
+| Danger red | "Reject" (outline, red text/border) | `AppColors.danger` |
+| Avatar accents | Initials circles (purple/pink/orange/blue) | Rotating palette; deterministic pick via `patientId.hashCode % palette.length`, never random per rebuild |
+| Surface | Card backgrounds | white, radius 16, subtle shadow (blur 12-16, low-opacity black, y-offset 4) |
+| Background | Screen background | very light gray/off-white so cards visibly sit on top |
+
+Typography: section headers bold ~16-18sp; card titles semibold ~15sp; supporting text regular ~12-13sp secondary; big stat numbers bold ~20-22sp wrapped in `FittedBox` so they never clip.
+Spacing: 16px screen horizontal padding, 12-16px gap between cards, 8-12px internal padding rhythm. Use existing spacing constants; don't invent per-file magic numbers.
+
+## Doctor Home (appointment queue)
+- Incoming request banner: avatar + name, mode (Audio/Video) + duration, "Requested Xmin ago" in warning color, Accept (filled primary) / Reject (outline danger). Support multiple stacked requests via a bounded `ListView.builder` (inside `SizedBox`/`Expanded`, never a raw unbounded `Column`); each is an `AppointmentRequestCard`.
+- Today's Appointments row: time (bold, primary) + avatar (initials, palette) + name + type icon (video/clinic) + price + trailing status button. Status button states: `Start` (outline primary, tappable, disabled/loading while confirming), `In Progress` (filled success pill, non-tappable), `Completed` (neutral/gray filled pill; design this state even though not in the reference).
+- Next Consultation card: gradient card, countdown chip top-right ("in Xmin") recomputed live via timer/stream (not static), avatar + name, mode + time, payment status row supporting Confirmed/Pending/Failed, duration, full-width white CTA with trailing chevron. Must collapse to zero height (not an empty gradient box) when there is no upcoming consultation.
+- Bottom nav: 5 items (Home, Schedule, Patients, Earnings, Profile); active = teal icon+label + dot indicator. Use `IndexedStack` so switching tabs preserves each tab's scroll/state.
+
+## Doctor Dashboard
+- Header: gradient card, avatar + "Good Morning" + name + specialty, dark-mode toggle, notification bell with unread badge (hide entirely at 0, never show "0"). Below: "Available for Consultation" toggle that persists as real state (repository/local state), not cosmetic.
+- Today's Overview card: date chip top-right, 4 stats (Appointments/Pending/Completed/Earnings) with icon + number + label. On narrow widths (see below) wrap or scroll horizontally rather than clipping numbers.
+- Quick Actions: 4 circular icon buttons (Schedule, Patients, Prescribe, Earnings), each navigates to its route. Degrade to 2x2 grid below the width threshold instead of shrinking icons below legibility.
+- Pending Requests: reuse the same `AppointmentRequestCard` as Home. One source of truth for accept/reject UI; do not duplicate.
+
+## Responsive + crash-proofing (non-negotiable)
+Target ~320dp phones up to ~480dp+ flagships and 600-1024dp tablets. No fixed-pixel-width containers holding text or a Row of flexible children.
+
+1. Never place a `ListView`/`GridView`/unbounded `Column` directly inside another `Column`/`Row` without `Expanded`/`Flexible`/a bounded `SizedBox` (top cause of prior overflow/`BoxConstraints` crashes).
+2. Every `Row` with text next to a fixed-width element (icon, avatar, price) wraps the text in `Flexible`/`Expanded` with explicit `maxLines` and `overflow: TextOverflow.ellipsis`.
+3. Breakpoints via `LayoutBuilder` or `MediaQuery.sizeOf(context).width`, not device-name checks:
+   - `< 360`: compact — stat row scrolls horizontally; Quick Actions goes 2x2 grid.
+   - `360-430`: base layout as designed.
+   - `> 600`: tablet — more horizontal padding / max content width (don't stretch cards edge-to-edge at 1024dp); consider 2-column appointment list.
+4. Support text scaling to at least 1.3x without clipping.
+5. Wrap every screen root in `SafeArea`; account for notch/dynamic-island and gesture-nav padding on both platforms.
+6. Network images always get `errorBuilder`/`loadingBuilder`; never a bare `Image.network`.
+7. Every async call (accept/reject, load stats) is wrapped in try/catch and drives loading/error/success state; never a bare `await` that leaves the UI stuck.
+8. Empty states required for: zero pending requests, zero appointments today, no next consultation.
+
+## Architecture
+- Feature-first: doctor screens in `lib/doctor/`, shared widgets in `lib/shared/`.
+- Controllers via `get_it` (`sl<...>`), injected at the router/composition root; screens don't instantiate repositories directly.
+- Build against existing mock repository interfaces; leave the NestJS swap point clearly marked, matching the existing pattern.
+- Animations: `flutter_animate` only, staggered entrance delays consistent with the existing "Medical Premium" motion; wrap tappable elements in the existing `AnimatedButton`.
+- Dark mode: use the existing local boolean toggle pattern, not a new mechanism.
+
+## Definition of done (per screen)
+- [ ] Matches reference layout/spacing/colors via existing tokens.
+- [ ] Builds with zero overflow/clip at 320dp, 390dp, 430dp, 768dp.
+- [ ] All async paths have loading + error + empty states.
+- [ ] No hardcoded colors/spacing outside `AppColors`/`AppSpacing`.
+- [ ] No placeholder comments, no unimplemented branches.
+- [ ] Reuses shared widgets (`AppointmentRequestCard`, `AnimatedButton`, nav bar) instead of re-implementing.

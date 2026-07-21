@@ -14,10 +14,21 @@ class AuthMockDataSource implements AuthDataSource {
       ),
       password: demoPassword,
     );
+    _accounts[_normalizeIdentity(doctorDemoEmail)] = const _MockAccount(
+      user: AuthUserModel(
+        id: 'mock_doctor_001',
+        fullName: 'Dr. Ali Raza',
+        emailOrPhone: doctorDemoEmail,
+        role: UserRole.doctor,
+      ),
+      password: doctorDemoPassword,
+    );
   }
 
   static const String demoEmail = 'sumiya@asaancare.pk';
   static const String demoPassword = 'password123';
+  static const String doctorDemoEmail = 'doctor@asaancare.pk';
+  static const String doctorDemoPassword = 'doctor123';
 
   final Map<String, _MockAccount> _accounts = {};
   AuthUserModel? _currentUser;

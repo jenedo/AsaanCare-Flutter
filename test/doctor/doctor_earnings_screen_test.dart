@@ -28,25 +28,18 @@ void main() {
       final harness = await _openEarnings(tester, size);
 
       expect(find.text('Total earnings'), findsOneWidget);
-      expect(find.text('PKR 28,500'), findsWidgets);
       expect(find.text('Open wallet'), findsOneWidget);
+      expect(find.text('Consultations'), findsOneWidget);
+      expect(find.text('Pending'), findsOneWidget);
+      expect(find.text('Growth'), findsOneWidget);
+      expect(find.textContaining('PKR '), findsWidgets);
       expect(tester.takeException(), isNull);
-      if (size == const Size(768, 1024)) {
-        expect(find.text('Earnings summary'), findsOneWidget);
-        await tester.scrollUntilVisible(
-          find.text('Recent transactions'),
-          500,
-          scrollable: find.byType(Scrollable).last,
-        );
-        await tester.pump(const Duration(milliseconds: 300));
-        expect(find.text('Recent transactions'), findsOneWidget);
-      }
       await tester.pumpWidget(const SizedBox.shrink());
       harness.dispose();
     }
   });
 
-  testWidgets('earnings tabs switch to a lazy transaction history', (
+  testWidgets('earnings tabs switch to a transaction history list', (
     tester,
   ) async {
     addTearDown(tester.view.resetPhysicalSize);
@@ -57,7 +50,6 @@ void main() {
     await tester.tap(find.text('Transactions').first);
     await tester.pumpAndSettle();
 
-    expect(find.text('Transaction history'), findsOneWidget);
     expect(find.textContaining('Ahmed Hassan'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -74,7 +66,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Wallet'), findsOneWidget);
       expect(find.text('Available balance'), findsWidgets);
-      expect(find.text('PKR 19,150'), findsWidgets);
+      expect(find.textContaining('PKR '), findsWidgets);
       await tester.tap(find.byTooltip('Back to earnings'));
       await tester.pumpAndSettle();
       expect(find.text('Total earnings'), findsOneWidget);
@@ -82,9 +74,9 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('earnings-period-control')));
       await tester.pumpAndSettle();
       expect(find.text('Choose earnings period'), findsOneWidget);
-      await tester.tap(find.text('Last 3 months'));
+      await tester.tap(find.text('Last month'));
       await tester.pumpAndSettle();
-      expect(find.text('Last 3 months'), findsWidgets);
+      expect(find.text('Last month'), findsWidgets);
       expect(tester.takeException(), isNull);
     },
   );

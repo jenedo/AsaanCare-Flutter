@@ -8,6 +8,7 @@ import 'core/logging/app_logger.dart';
 import 'core/routes/app_routes.dart';
 import 'doctor/doctor_app.dart';
 import 'features/auth/presentation/controllers/auth_controller.dart';
+import 'features/auth/domain/entities/auth_user.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,17 +18,21 @@ Future<void> main() async {
     await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   }
 
-  const appMode = String.fromEnvironment('APP_MODE', defaultValue: 'patient');
-  if (appMode == 'doctor') {
-    runApp(const DoctorApp());
-    return;
-  }
-
   try {
     await setupServiceLocator();
 
     final authController = sl<AuthController>();
     await authController.loadCurrentUser();
+
+    const appMode = String.fromEnvironment('APP_MODE', defaultValue: 'patient');
+    if (appMode == 'doctor') {
+      if (authController.isLoggedIn &&
+          authController.currentUser?.role != UserRole.doctor) {
+        await authController.logout();
+      }
+      runApp(DoctorApp(authController: authController));
+      return;
+    }
 
     runApp(
       AsaanCareApp(

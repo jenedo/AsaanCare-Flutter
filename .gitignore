@@ -51,3 +51,4 @@ lib_backup_before_lint_cleanup_*/
 pubspec.backup.yaml
 
 .asaancare-backup/
+.dart-tool-state/

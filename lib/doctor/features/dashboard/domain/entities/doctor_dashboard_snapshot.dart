@@ -13,6 +13,11 @@ enum DoctorAppointmentFilter { all, pending, completed }
 
 enum DoctorConsultationType { video, audio, clinic }
 
+/// Payment state for a consultation. Kept as a doctor-domain enum because no
+/// shared patient/booking payment-status type exists yet; if one is later
+/// introduced, both apps should converge on it rather than diverge.
+enum DoctorPaymentStatus { confirmed, pending, failed }
+
 class DoctorProfileSummary {
   const DoctorProfileSummary({
     required this.id,
@@ -27,6 +32,16 @@ class DoctorProfileSummary {
   final String specialty;
   final String imageAsset;
   final bool isOnline;
+
+  DoctorProfileSummary copyWith({bool? isOnline}) {
+    return DoctorProfileSummary(
+      id: id,
+      name: name,
+      specialty: specialty,
+      imageAsset: imageAsset,
+      isOnline: isOnline ?? this.isOnline,
+    );
+  }
 }
 
 class DoctorPatientSummary {
@@ -59,6 +74,7 @@ class DoctorAppointmentRecord {
     required this.requestedAt,
     required this.durationMinutes,
     required this.feePkr,
+    required this.paymentStatus,
   });
 
   final String id;
@@ -69,8 +85,12 @@ class DoctorAppointmentRecord {
   final DateTime requestedAt;
   final int durationMinutes;
   final int feePkr;
+  final DoctorPaymentStatus paymentStatus;
 
-  DoctorAppointmentRecord copyWith({DoctorAppointmentStatus? status}) {
+  DoctorAppointmentRecord copyWith({
+    DoctorAppointmentStatus? status,
+    DoctorPaymentStatus? paymentStatus,
+  }) {
     return DoctorAppointmentRecord(
       id: id,
       patient: patient,
@@ -80,6 +100,7 @@ class DoctorAppointmentRecord {
       requestedAt: requestedAt,
       durationMinutes: durationMinutes,
       feePkr: feePkr,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
     );
   }
 }
@@ -96,11 +117,12 @@ class DoctorDashboardSnapshot {
   final int unreadNotifications;
 
   DoctorDashboardSnapshot copyWith({
+    DoctorProfileSummary? profile,
     List<DoctorAppointmentRecord>? appointments,
     int? unreadNotifications,
   }) {
     return DoctorDashboardSnapshot(
-      profile: profile,
+      profile: profile ?? this.profile,
       appointments: appointments ?? this.appointments,
       unreadNotifications: unreadNotifications ?? this.unreadNotifications,
     );
@@ -123,5 +145,13 @@ extension DoctorConsultationTypeLabel on DoctorConsultationType {
     DoctorConsultationType.video => 'Video Consultation',
     DoctorConsultationType.audio => 'Audio Consultation',
     DoctorConsultationType.clinic => 'Clinic Visit',
+  };
+}
+
+extension DoctorPaymentStatusLabel on DoctorPaymentStatus {
+  String get label => switch (this) {
+    DoctorPaymentStatus.confirmed => 'Confirmed',
+    DoctorPaymentStatus.pending => 'Pending',
+    DoctorPaymentStatus.failed => 'Failed',
   };
 }

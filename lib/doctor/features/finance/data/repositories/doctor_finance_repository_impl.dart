@@ -11,7 +11,12 @@ class DoctorFinanceRepositoryImpl implements DoctorFinanceRepository {
   Future<DoctorFinanceSnapshot> getFinance({
     required String doctorId,
     required DoctorFinancePeriod period,
+    FinanceDateRange? customRange,
   }) {
-    return dataSource.getFinance(doctorId: doctorId, period: period);
+    return dataSource.getFinance(
+      doctorId: doctorId,
+      period: period,
+      customRange: customRange,
+    );
   }
 }

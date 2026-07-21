@@ -8,4 +8,11 @@ abstract class DoctorDashboardRepository {
     required String appointmentId,
     required DoctorAppointmentStatus status,
   });
+
+  /// Persists the doctor's "Available for Consultation" toggle.
+  /// NestJS swap point: replace the mock datasource implementation.
+  Future<DoctorDashboardSnapshot> updateAvailability({
+    required String doctorId,
+    required bool isOnline,
+  });
 }

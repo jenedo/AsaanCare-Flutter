@@ -47,6 +47,22 @@ class DoctorDashboardMockDataSource {
     return snapshot;
   }
 
+  Future<DoctorDashboardSnapshot> updateAvailability({
+    required String doctorId,
+    required bool isOnline,
+  }) async {
+    _validateDoctorId(doctorId);
+    if (actionDelay > Duration.zero) {
+      await Future<void>.delayed(actionDelay);
+    }
+    final current = _snapshots.putIfAbsent(doctorId, () => _seed(doctorId));
+    final snapshot = current.copyWith(
+      profile: current.profile.copyWith(isOnline: isOnline),
+    );
+    _snapshots[doctorId] = snapshot;
+    return snapshot;
+  }
+
   void _validateDoctorId(String doctorId) {
     if (doctorId.trim().isEmpty) {
       throw ArgumentError.value(doctorId, 'doctorId');
@@ -99,10 +115,10 @@ class DoctorDashboardMockDataSource {
         id: doctorId,
         name: 'Dr. Ali Raza',
         specialty: 'General Physician',
-        imageAsset: 'assets/images/user_avatar.png',
+        imageAsset: 'assets/images/doctor_sara.png',
         isOnline: true,
       ),
-      unreadNotifications: 2,
+      unreadNotifications: 3,
       appointments: [
         DoctorAppointmentRecord(
           id: 'request-ahmed',
@@ -113,6 +129,7 @@ class DoctorDashboardMockDataSource {
           requestedAt: now.subtract(const Duration(minutes: 10)),
           durationMinutes: 30,
           feePkr: 1500,
+          paymentStatus: DoctorPaymentStatus.pending,
         ),
         DoctorAppointmentRecord(
           id: 'request-fatima',
@@ -123,6 +140,7 @@ class DoctorDashboardMockDataSource {
           requestedAt: now.subtract(const Duration(minutes: 25)),
           durationMinutes: 20,
           feePkr: 1000,
+          paymentStatus: DoctorPaymentStatus.pending,
         ),
         DoctorAppointmentRecord(
           id: 'appointment-ahmed',
@@ -133,6 +151,7 @@ class DoctorDashboardMockDataSource {
           requestedAt: now.subtract(const Duration(days: 2)),
           durationMinutes: 30,
           feePkr: 1500,
+          paymentStatus: DoctorPaymentStatus.confirmed,
         ),
         DoctorAppointmentRecord(
           id: 'appointment-sara',
@@ -143,6 +162,7 @@ class DoctorDashboardMockDataSource {
           requestedAt: now.subtract(const Duration(days: 3)),
           durationMinutes: 30,
           feePkr: 2000,
+          paymentStatus: DoctorPaymentStatus.confirmed,
         ),
         DoctorAppointmentRecord(
           id: 'appointment-kamran',
@@ -153,6 +173,7 @@ class DoctorDashboardMockDataSource {
           requestedAt: now.subtract(const Duration(days: 1)),
           durationMinutes: 30,
           feePkr: 1500,
+          paymentStatus: DoctorPaymentStatus.failed,
         ),
         DoctorAppointmentRecord(
           id: 'appointment-completed',
@@ -163,6 +184,7 @@ class DoctorDashboardMockDataSource {
           requestedAt: now.subtract(const Duration(days: 5)),
           durationMinutes: 20,
           feePkr: 1200,
+          paymentStatus: DoctorPaymentStatus.confirmed,
         ),
       ],
     );

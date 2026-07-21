@@ -9,7 +9,12 @@ class GetDoctorFinance {
   Future<DoctorFinanceSnapshot> call({
     required String doctorId,
     required DoctorFinancePeriod period,
+    FinanceDateRange? customRange,
   }) {
-    return _repository.getFinance(doctorId: doctorId, period: period);
+    return _repository.getFinance(
+      doctorId: doctorId,
+      period: period,
+      customRange: customRange,
+    );
   }
 }

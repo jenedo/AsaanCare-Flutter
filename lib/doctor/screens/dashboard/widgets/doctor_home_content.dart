@@ -6,6 +6,24 @@ import '../../../features/dashboard/presentation/controllers/doctor_dashboard_co
 import '../../../features/finance/domain/entities/doctor_finance_snapshot.dart';
 import '../../../features/finance/presentation/controllers/doctor_finance_controller.dart';
 
+const _doctorTeal = Color(0xFF006D5B);
+const _doctorTealDark = Color(0xFF005A4B);
+const _doctorTealMid = Color(0xFF007568);
+const _doctorMint = Color(0xFFE9F8F5);
+const _doctorBg = Color(0xFFF5F7F6);
+const _doctorText = Color(0xFF1F3438);
+const _doctorMuted = Color(0xFF6F8588);
+const _doctorBorder = Color(0xFFE3ECEA);
+const _doctorWarning = Color(0xFFFF9800);
+const _doctorSuccess = Color(0xFF21B66F);
+const _doctorDanger = Color(0xFFF44336);
+const _doctorBlue = Color(0xFF4F6BFF);
+const _doctorPurple = Color(0xFF9C4DFF);
+
+const _cardShadow = [
+  BoxShadow(color: Color(0x140D5C63), blurRadius: 16, offset: Offset(0, 5)),
+];
+
 class DoctorHomeContent extends StatelessWidget {
   const DoctorHomeContent({
     super.key,
@@ -65,125 +83,167 @@ class DoctorHomeContent extends StatelessWidget {
         if (snapshot == null) return const _DashboardLoading();
         final finance = financeController.snapshot;
         final appointments = dashboardController.todayAppointments
-            .where((item) => item.status != DoctorAppointmentStatus.pending)
+            .where(
+              (item) =>
+                  item.status != DoctorAppointmentStatus.pending &&
+                  item.status != DoctorAppointmentStatus.completed &&
+                  item.status != DoctorAppointmentStatus.cancelled,
+            )
             .take(3)
             .toList(growable: false);
         final requests = dashboardController.pendingRequests
             .take(2)
             .toList(growable: false);
+        final nextConsultation = appointments.isEmpty
+            ? null
+            : appointments.first;
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final pageBg = isDark
+            ? Theme.of(context).colorScheme.surface
+            : _doctorBg;
 
-        return SafeArea(
-          bottom: false,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 720),
-              child: RefreshIndicator(
-                onRefresh: () async {
-                  await Future.wait([
-                    dashboardController.refresh(),
-                    financeController.refresh(),
-                  ]);
-                },
-                child: CustomScrollView(
-                  key: const PageStorageKey('doctor-home-scroll'),
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  slivers: [
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-                      sliver: SliverList.list(
-                        children: [
-                          _DoctorHeader(
-                            profile: snapshot.profile,
-                            fallbackName: doctorName,
-                            notificationCount:
-                                dashboardController.notificationCount,
-                            isDarkMode: isDarkMode,
-                            onThemeToggle: onThemeToggle,
-                            onProfileTap: onProfileTap,
-                            onNotificationsTap: onNotificationsTap,
-                          ),
-                          const SizedBox(height: 18),
-                          _OverviewCard(
-                            appointmentCount: appointments.length,
-                            pendingCount:
-                                dashboardController.pendingRequests.length,
-                            completedCount: dashboardController.completedCount,
-                            earningsPkr: finance?.totalEarningsPkr ?? 0,
-                            onAppointmentsTap: onAppointmentsTap,
-                            onPendingTap: onPendingTap,
-                            onCompletedTap: onCompletedTap,
-                            onEarningsTap: onEarningsTap,
-                          ),
-                          const SizedBox(height: 18),
-                          _QuickActions(
-                            onScheduleTap: onScheduleTap,
-                            onPatientsTap: onPatientsTap,
-                            onPrescribeTap: onPrescribeTap,
-                            onEarningsTap: onEarningsTap,
-                          ),
-                          const SizedBox(height: 24),
-                          _SectionHeader(
-                            title: 'Pending Requests',
-                            count: dashboardController.pendingRequests.length,
-                            actionLabel: 'See All',
-                            onAction: onPendingTap,
-                          ),
-                          const SizedBox(height: 10),
-                          if (requests.isEmpty)
-                            const _EmptyCard(
-                              icon: Icons.task_alt_rounded,
-                              title: 'No pending requests',
-                              subtitle:
-                                  'New consultation requests will appear here.',
-                            )
-                          else
-                            for (final request in requests) ...[
-                              _PendingRequestCard(
-                                appointment: request,
-                                isLoading: dashboardController.isUpdating(
-                                  request.id,
-                                ),
-                                onPatientTap: () =>
-                                    onPatientTap(request.patient),
-                                onAccept: () => dashboardController
-                                    .acceptRequest(request.id),
-                                onReject: () =>
-                                    _confirmReject(context, request),
-                              ),
-                              const SizedBox(height: 10),
-                            ],
-                          const SizedBox(height: 18),
-                          _SectionHeader(
-                            title: "Today's Appointments",
-                            actionLabel: 'See All',
-                            onAction: onAppointmentsTap,
-                          ),
-                          const SizedBox(height: 10),
-                          if (appointments.isEmpty)
-                            const _EmptyCard(
-                              icon: Icons.event_available_rounded,
-                              title: 'No appointments today',
-                              subtitle:
-                                  'Your confirmed consultations will appear here.',
-                            )
-                          else
-                            for (final appointment in appointments) ...[
-                              _AppointmentCard(
-                                appointment: appointment,
-                                onPatientTap: () =>
-                                    onPatientTap(appointment.patient),
-                                onAction: () =>
-                                    onAppointmentAction(appointment),
-                                isLoading: dashboardController.isUpdating(
-                                  appointment.id,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                            ],
-                        ],
+        return ColoredBox(
+          color: pageBg,
+          child: SafeArea(
+            bottom: false,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: RefreshIndicator(
+                  color: _doctorTeal,
+                  onRefresh: () async {
+                    await Future.wait([
+                      dashboardController.refresh(),
+                      financeController.refresh(),
+                    ]);
+                  },
+                  child: CustomScrollView(
+                    key: const PageStorageKey('doctor-home-scroll'),
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: _DoctorHeader(
+                          profile: snapshot.profile,
+                          fallbackName: doctorName,
+                          notificationCount:
+                              dashboardController.notificationCount,
+                          isDarkMode: isDarkMode,
+                          onThemeToggle: onThemeToggle,
+                          onProfileTap: onProfileTap,
+                          onNotificationsTap: onNotificationsTap,
+                        ),
                       ),
-                    ),
-                  ],
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
+                        sliver: SliverList.list(
+                          children: [
+                            Transform.translate(
+                              offset: const Offset(0, -18),
+                              child: _OverviewCard(
+                                appointmentCount: dashboardController
+                                    .todayAppointments
+                                    .length,
+                                pendingCount:
+                                    dashboardController.pendingRequests.length,
+                                completedCount:
+                                    dashboardController.completedCount,
+                                earningsPkr: finance?.totalEarningsPkr ?? 0,
+                                onAppointmentsTap: onAppointmentsTap,
+                                onPendingTap: onPendingTap,
+                                onCompletedTap: onCompletedTap,
+                                onEarningsTap: onEarningsTap,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Quick Actions',
+                              style: TextStyle(
+                                color: isDark
+                                    ? Theme.of(context).colorScheme.onSurface
+                                    : _doctorText,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            _QuickActions(
+                              onScheduleTap: onScheduleTap,
+                              onPatientsTap: onPatientsTap,
+                              onPrescribeTap: onPrescribeTap,
+                              onEarningsTap: onEarningsTap,
+                            ),
+                            const SizedBox(height: 22),
+                            _SectionHeader(
+                              title: 'Pending Requests',
+                              count: dashboardController.pendingRequests.length,
+                              actionLabel: 'See All',
+                              onAction: onPendingTap,
+                            ),
+                            const SizedBox(height: 10),
+                            if (requests.isEmpty)
+                              const _EmptyCard(
+                                icon: Icons.task_alt_rounded,
+                                title: 'No pending requests',
+                                subtitle:
+                                    'New consultation requests will appear here.',
+                              )
+                            else
+                              for (final request in requests) ...[
+                                _PendingRequestCard(
+                                  appointment: request,
+                                  isLoading: dashboardController.isUpdating(
+                                    request.id,
+                                  ),
+                                  onPatientTap: () =>
+                                      onPatientTap(request.patient),
+                                  onAccept: () => dashboardController
+                                      .acceptRequest(request.id),
+                                  onReject: () =>
+                                      _confirmReject(context, request),
+                                ),
+                                const SizedBox(height: 10),
+                              ],
+                            const SizedBox(height: 14),
+                            _SectionHeader(
+                              title: "Today's Appointments",
+                              actionLabel: 'See All',
+                              onAction: onAppointmentsTap,
+                            ),
+                            const SizedBox(height: 10),
+                            if (appointments.isEmpty)
+                              const _EmptyCard(
+                                icon: Icons.event_available_rounded,
+                                title: 'No appointments today',
+                                subtitle:
+                                    'Your confirmed consultations will appear here.',
+                              )
+                            else
+                              for (final appointment in appointments) ...[
+                                _AppointmentCard(
+                                  appointment: appointment,
+                                  onPatientTap: () =>
+                                      onPatientTap(appointment.patient),
+                                  onAction: () =>
+                                      onAppointmentAction(appointment),
+                                  isLoading: dashboardController.isUpdating(
+                                    appointment.id,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                              ],
+                            if (nextConsultation != null) ...[
+                              const SizedBox(height: 8),
+                              _NextConsultationCard(
+                                appointment: nextConsultation,
+                                onStart: () =>
+                                    onAppointmentAction(nextConsultation),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -246,91 +306,169 @@ class _DoctorHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = fallbackName.trim().isEmpty ? profile.name : fallbackName;
-    final colors = Theme.of(context).colorScheme;
-    final content = Row(
-      children: [
-        Semantics(
-          button: true,
-          label: 'Open doctor profile',
-          child: InkWell(
-            borderRadius: BorderRadius.circular(40),
-            onTap: onProfileTap,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                CircleAvatar(
-                  radius: 31,
-                  backgroundColor: colors.primaryContainer,
-                  backgroundImage: AssetImage(profile.imageAsset),
+    final content = Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 34),
+      decoration: const BoxDecoration(
+        color: _doctorTeal,
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Semantics(
+                button: true,
+                label: 'Open doctor profile',
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(40),
+                  onTap: onProfileTap,
+                  child: CircleAvatar(
+                    key: const ValueKey('doctor-profile-image'),
+                    radius: 24,
+                    backgroundColor: const Color(0xFF48B7AC),
+                    backgroundImage: AssetImage(profile.imageAsset),
+                  ),
                 ),
-                if (profile.isOnline)
-                  Positioned(
-                    right: -1,
-                    bottom: 2,
-                    child: Container(
-                      width: 15,
-                      height: 15,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF18A957),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: colors.surface, width: 2),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      doctorGreetingForHour(DateTime.now().hour).toUpperCase(),
+                      style: const TextStyle(
+                        color: Color(0xFFC8EEE9),
+                        fontSize: 11,
+                        letterSpacing: 0.6,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: 13),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                doctorGreetingForHour(DateTime.now().hour),
-                style: TextStyle(
-                  color: colors.primary,
-                  fontWeight: FontWeight.w700,
+                    const SizedBox(height: 2),
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        height: 1.1,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      profile.specialty,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFFD8F3F0),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+              _HeaderButton(
+                tooltip: isDarkMode ? 'Use light theme' : 'Use dark theme',
+                icon: isDarkMode
+                    ? Icons.light_mode_outlined
+                    : Icons.dark_mode_outlined,
+                onTap: onThemeToggle,
               ),
-              Text(
-                profile.specialty,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: colors.onSurfaceVariant,
+              const SizedBox(width: 8),
+              Badge(
+                isLabelVisible: notificationCount > 0,
+                backgroundColor: _doctorDanger,
+                label: Text(
+                  notificationCount > 9 ? '9+' : '$notificationCount',
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                child: _HeaderButton(
+                  tooltip: 'Open notifications',
+                  icon: Icons.notifications_none_rounded,
+                  onTap: onNotificationsTap,
                 ),
               ),
             ],
           ),
-        ),
-        _HeaderButton(
-          tooltip: isDarkMode ? 'Use light theme' : 'Use dark theme',
-          icon: isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-          onTap: onThemeToggle,
-        ),
-        const SizedBox(width: 8),
-        Badge(
-          isLabelVisible: notificationCount > 0,
-          label: Text(notificationCount > 9 ? '9+' : '$notificationCount'),
-          child: _HeaderButton(
-            tooltip: 'Open notifications',
-            icon: Icons.notifications_none_rounded,
-            onTap: onNotificationsTap,
-          ),
-        ),
-      ],
+          const SizedBox(height: 16),
+          _AvailabilityStrip(initialValue: profile.isOnline),
+        ],
+      ),
     );
     return _motion(context, content, delay: 0);
+  }
+}
+
+class _AvailabilityStrip extends StatefulWidget {
+  const _AvailabilityStrip({required this.initialValue});
+
+  final bool initialValue;
+
+  @override
+  State<_AvailabilityStrip> createState() => _AvailabilityStripState();
+}
+
+class _AvailabilityStripState extends State<_AvailabilityStrip> {
+  late bool _available = widget.initialValue;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 48),
+      padding: const EdgeInsets.only(left: 14, right: 8),
+      decoration: BoxDecoration(
+        color: _doctorTealMid,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 9,
+            height: 9,
+            decoration: BoxDecoration(
+              color: _available
+                  ? const Color(0xFF40E38F)
+                  : Colors.white.withValues(alpha: 0.55),
+              shape: BoxShape.circle,
+              boxShadow: _available
+                  ? const [BoxShadow(color: Color(0x6639E68C), blurRadius: 7)]
+                  : null,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              _available
+                  ? 'Available for Consultation'
+                  : 'Not Available for Consultation',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          Switch.adaptive(
+            key: const ValueKey('doctor-availability-switch'),
+            value: _available,
+            activeTrackColor: Colors.white,
+            activeThumbColor: _doctorTeal,
+            inactiveTrackColor: const Color(0xFF8FB7B2),
+            inactiveThumbColor: Colors.white,
+            onChanged: (value) => setState(() => _available = value),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -346,14 +484,17 @@ class _HeaderButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-    color: Theme.of(context).colorScheme.surfaceContainer,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(14),
-      side: BorderSide(
-        color: Theme.of(context).dividerColor.withValues(alpha: .45),
-      ),
+    color: Colors.white.withValues(alpha: 0.14),
+    shape: const CircleBorder(),
+    child: IconButton(
+      tooltip: tooltip,
+      color: Colors.white,
+      iconSize: 20,
+      visualDensity: VisualDensity.compact,
+      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+      onPressed: onTap,
+      icon: Icon(icon),
     ),
-    child: IconButton(tooltip: tooltip, onPressed: onTap, icon: Icon(icon)),
   );
 }
 
@@ -379,126 +520,187 @@ class _OverviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final metrics = [
       (
-        Icons.calendar_month_outlined,
+        Icons.calendar_today_outlined,
         '$appointmentCount',
         'Appointments',
         onAppointmentsTap,
+        _doctorTeal,
+        _doctorMint,
       ),
-      (Icons.schedule_rounded, '$pendingCount', 'Pending', onPendingTap),
-      (Icons.task_alt_rounded, '$completedCount', 'Completed', onCompletedTap),
+      (
+        Icons.schedule_rounded,
+        '$pendingCount',
+        'Pending',
+        onPendingTap,
+        _doctorWarning,
+        const Color(0xFFFFF5E6),
+      ),
+      (
+        Icons.task_alt_rounded,
+        '$completedCount',
+        'Completed',
+        onCompletedTap,
+        _doctorSuccess,
+        const Color(0xFFEAF8EF),
+      ),
       (
         Icons.account_balance_wallet_outlined,
-        formatPkr(earningsPkr),
+        _formatCompactPkr(earningsPkr),
         'Earnings',
         onEarningsTap,
+        _doctorTeal,
+        _doctorMint,
       ),
     ];
     final card = Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF087D72), Color(0xFF0B9E98)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x22007870),
-            blurRadius: 18,
-            offset: Offset(0, 8),
-          ),
-        ],
+        color: isDark ? colors.surfaceContainerHighest : Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: isDark ? null : _cardShadow,
       ),
       child: Material(
         color: Colors.transparent,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 6),
           child: Column(
             children: [
               Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       "Today's Overview",
                       style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w900,
+                        color: isDark ? colors.onSurface : _doctorText,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                   ),
-                  Text(
-                    _formatDate(DateTime.now()),
-                    style: const TextStyle(color: Colors.white70),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isDark ? colors.primaryContainer : _doctorMint,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      _formatDate(DateTime.now()),
+                      style: TextStyle(
+                        color: isDark
+                            ? colors.onPrimaryContainer
+                            : _doctorTealDark,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 14),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final columns = constraints.maxWidth < 400 ? 2 : 4;
-                  return GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: metrics.length,
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: columns,
-                      childAspectRatio: columns == 2 ? 1.2 : .92,
-                      crossAxisSpacing: 8,
-                      mainAxisSpacing: 8,
-                    ),
-                    itemBuilder: (context, index) {
-                      final metric = metrics[index];
-                      return Semantics(
+              Row(
+                children: [
+                  for (var index = 0; index < metrics.length; index++)
+                    Expanded(
+                      child: Semantics(
                         button: true,
-                        label: 'Open ${metric.$3}',
+                        label: 'Open ${metrics[index].$3}',
                         child: InkWell(
-                          key: ValueKey('overview-${metric.$3.toLowerCase()}'),
-                          borderRadius: BorderRadius.circular(14),
-                          onTap: metric.$4,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: .08),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
+                          key: ValueKey(
+                            'overview-${metrics[index].$3.toLowerCase()}',
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: metrics[index].$4,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
                             child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(metric.$1, color: Colors.white, size: 23),
-                                const SizedBox(height: 4),
+                                Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? colors.surfaceContainerHigh
+                                        : metrics[index].$6,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    metrics[index].$1,
+                                    color: metrics[index].$5,
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
                                 FittedBox(
                                   fit: BoxFit.scaleDown,
                                   child: Text(
-                                    metric.$2,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w900,
+                                    metrics[index].$2,
+                                    style: TextStyle(
+                                      color: isDark
+                                          ? colors.onSurface
+                                          : _doctorText,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w800,
                                     ),
                                   ),
                                 ),
-                                Text(
-                                  metric.$3,
-                                  maxLines: 1,
-                                  style: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 11,
+                                const SizedBox(height: 2),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    metrics[index].$3,
+                                    maxLines: 1,
+                                    style: TextStyle(
+                                      color: isDark
+                                          ? colors.onSurfaceVariant
+                                          : _doctorMuted,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
                           ),
                         ),
-                      );
-                    },
-                  );
-                },
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Divider(
+                height: 1,
+                color: isDark ? colors.outlineVariant : _doctorBorder,
+              ),
+              TextButton(
+                key: const ValueKey('view-detailed-analytics'),
+                onPressed: onEarningsTap,
+                style: TextButton.styleFrom(
+                  foregroundColor: isDark ? colors.primary : _doctorTealDark,
+                  minimumSize: const Size(0, 40),
+                ),
+                child: const FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'View Detailed Analytics',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      SizedBox(width: 2),
+                      Icon(Icons.chevron_right_rounded, size: 18),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
@@ -524,93 +726,86 @@ class _QuickActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final actions = [
       (
-        Icons.calendar_month_rounded,
+        Icons.calendar_month_outlined,
         'Schedule',
-        colors.primaryContainer,
-        colors.primary,
+        _doctorTeal,
+        const Color(0xFFE7F6F4),
         onScheduleTap,
       ),
       (
-        Icons.people_alt_rounded,
+        Icons.group_outlined,
         'Patients',
-        colors.secondaryContainer,
-        colors.secondary,
+        _doctorBlue,
+        const Color(0xFFEDF1FF),
         onPatientsTap,
       ),
       (
-        Icons.edit_note_rounded,
+        Icons.receipt_long_outlined,
         'Prescribe',
-        colors.tertiaryContainer,
-        colors.tertiary,
+        _doctorPurple,
+        const Color(0xFFF5EDFF),
         onPrescribeTap,
       ),
       (
-        Icons.account_balance_wallet_rounded,
+        Icons.attach_money_rounded,
         'Earnings',
-        colors.errorContainer,
-        colors.error,
+        const Color(0xFFE67E00),
+        const Color(0xFFFFF2E5),
         onEarningsTap,
       ),
     ];
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns = constraints.maxWidth < 400 ? 2 : 4;
-        final width = (constraints.maxWidth - (columns - 1) * 10) / columns;
-        return Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: actions
-              .map(
-                (action) => SizedBox(
-                  width: width,
-                  child: Material(
-                    color: colors.surfaceContainerLow,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                      side: BorderSide(
-                        color: colors.outlineVariant.withValues(alpha: .55),
-                      ),
-                    ),
-                    child: InkWell(
-                      key: ValueKey('quick-${action.$2.toLowerCase()}'),
-                      borderRadius: BorderRadius.circular(18),
-                      onTap: action.$5,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 16,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+      decoration: BoxDecoration(
+        color: isDark ? colors.surfaceContainerHighest : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: isDark ? null : _cardShadow,
+      ),
+      child: Row(
+        children: [
+          for (final action in actions)
+            Expanded(
+              child: Semantics(
+                button: true,
+                label: action.$2,
+                child: InkWell(
+                  key: ValueKey('quick-${action.$2.toLowerCase()}'),
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: action.$5,
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? colors.surfaceContainerHigh
+                              : action.$4,
+                          shape: BoxShape.circle,
                         ),
-                        child: Column(
-                          children: [
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: action.$3,
-                                borderRadius: BorderRadius.circular(13),
-                              ),
-                              child: Icon(action.$1, color: action.$4),
-                            ),
-                            const SizedBox(height: 9),
-                            Text(
-                              action.$2,
-                              maxLines: 1,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ],
+                        child: Icon(action.$1, color: action.$3, size: 22),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        action.$2,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: isDark ? colors.onSurface : _doctorText,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
-              )
-              .toList(),
-        );
-      },
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -628,25 +823,68 @@ class _SectionHeader extends StatelessWidget {
   final VoidCallback? onAction;
 
   @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Flexible(
-        child: Text(
-          title,
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Row(
+      children: [
+        Flexible(
+          child: Text(
+            title,
+            style: TextStyle(
+              color: isDark ? colors.onSurface : _doctorText,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ),
-      ),
-      if (count != null) ...[
-        const SizedBox(width: 8),
-        Badge(label: Text('$count')),
+        if (count != null) ...[
+          const SizedBox(width: 8),
+          Container(
+            width: 22,
+            height: 22,
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              color: _doctorDanger,
+              shape: BoxShape.circle,
+            ),
+            child: Text(
+              '$count',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+        const Spacer(),
+        if (actionLabel != null)
+          TextButton(
+            onPressed: onAction,
+            style: TextButton.styleFrom(
+              foregroundColor: isDark ? colors.primary : _doctorTealDark,
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              minimumSize: const Size(0, 40),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  actionLabel!,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const Icon(Icons.chevron_right_rounded, size: 18),
+              ],
+            ),
+          ),
       ],
-      const Spacer(),
-      if (actionLabel != null)
-        TextButton(onPressed: onAction, child: Text(actionLabel!)),
-    ],
-  );
+    );
+  }
 }
 
 class _PendingRequestCard extends StatelessWidget {
@@ -666,83 +904,153 @@ class _PendingRequestCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Card(
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final initials = _initials(appointment.patient.name);
+    final avatarColor = _avatarColor(initials);
+    return Container(
       key: ValueKey('pending-request-${appointment.id}'),
-      margin: EdgeInsets.zero,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: BorderSide(color: colors.outlineVariant.withValues(alpha: .55)),
+      padding: const EdgeInsets.fromLTRB(12, 12, 10, 12),
+      decoration: BoxDecoration(
+        color: isDark ? colors.surfaceContainerHighest : Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: isDark ? null : _cardShadow,
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          children: [
-            Row(
+      child: Row(
+        children: [
+          InkWell(
+            borderRadius: BorderRadius.circular(32),
+            onTap: onPatientTap,
+            child: Container(
+              width: 44,
+              height: 44,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: avatarColor,
+                shape: BoxShape.circle,
+              ),
+              child: Text(
+                initials,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                InkWell(
-                  borderRadius: BorderRadius.circular(32),
-                  onTap: onPatientTap,
-                  child: CircleAvatar(
-                    radius: 28,
-                    backgroundImage: AssetImage(appointment.patient.imageAsset),
+                Text(
+                  appointment.patient.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: isDark ? colors.onSurface : _doctorText,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        appointment.patient.name,
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        '${appointment.type.label} · ${appointment.durationMinutes} min',
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        'Requested ${_relativeTime(appointment.requestedAt)}',
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(
+                      _typeIcon(appointment.type),
+                      color: isDark ? colors.primary : _doctorTeal,
+                      size: 15,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        '${_shortType(appointment.type)} - ${appointment.durationMinutes} min',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: colors.error,
-                          fontWeight: FontWeight.w700,
+                          color: isDark
+                              ? colors.onSurfaceVariant
+                              : _doctorTealDark,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Requested: ${_relativeTime(appointment.requestedAt)}',
+                  style: const TextStyle(
+                    color: _doctorWarning,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                Icon(_typeIcon(appointment.type), color: colors.primary),
               ],
             ),
-            const SizedBox(height: 12),
-            Row(
+          ),
+          const SizedBox(width: 6),
+          SizedBox(
+            width: 70,
+            child: Column(
               children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: isLoading ? null : onReject,
-                    child: const Text('Reject'),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
+                SizedBox(
+                  width: double.infinity,
+                  height: 34,
                   child: FilledButton(
                     onPressed: isLoading ? null : onAccept,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _doctorTeal,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: _doctorTeal.withValues(
+                        alpha: 0.55,
+                      ),
+                      padding: EdgeInsets.zero,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                     child: isLoading
                         ? const SizedBox.square(
-                            dimension: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                            dimension: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
                         : const Text('Accept'),
                   ),
                 ),
+                const SizedBox(height: 6),
+                SizedBox(
+                  width: double.infinity,
+                  height: 34,
+                  child: OutlinedButton(
+                    onPressed: isLoading ? null : onReject,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _doctorDanger,
+                      side: const BorderSide(color: _doctorDanger),
+                      padding: EdgeInsets.zero,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    child: const Text('Reject'),
+                  ),
+                ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -763,53 +1071,59 @@ class _AppointmentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final inProgress = appointment.status == DoctorAppointmentStatus.inProgress;
-    final compactAction = MediaQuery.sizeOf(context).width < 430;
-    return Card(
-      margin: EdgeInsets.zero,
-      elevation: 0,
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(18),
-        side: BorderSide(color: colors.outlineVariant.withValues(alpha: .55)),
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? colors.surfaceContainerHighest : Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: isDark ? null : _cardShadow,
       ),
+      clipBehavior: Clip.antiAlias,
       child: IntrinsicHeight(
         child: Row(
           children: [
             Container(
-              width: 5,
-              color: inProgress ? colors.primary : Colors.transparent,
+              width: 4,
+              color: inProgress ? _doctorTeal : Colors.transparent,
             ),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(13),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 10,
+                ),
                 child: Row(
                   children: [
                     SizedBox(
-                      width: 58,
+                      width: 48,
                       child: Text(
                         _formatTime(appointment.scheduledAt),
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: colors.primary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
+                          color: isDark ? colors.primary : _doctorTeal,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ),
-                    const VerticalDivider(width: 18),
+                    Container(
+                      width: 1,
+                      margin: const EdgeInsets.symmetric(horizontal: 8),
+                      color: isDark ? colors.outlineVariant : _doctorBorder,
+                    ),
                     InkWell(
                       key: ValueKey('home-patient-${appointment.id}'),
                       borderRadius: BorderRadius.circular(28),
                       onTap: onPatientTap,
                       child: CircleAvatar(
-                        radius: 24,
+                        radius: 18,
                         backgroundImage: AssetImage(
                           appointment.patient.imageAsset,
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -819,80 +1133,259 @@ class _AppointmentCard extends StatelessWidget {
                             appointment.patient.name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontWeight: FontWeight.w900),
+                            style: TextStyle(
+                              color: isDark ? colors.onSurface : _doctorText,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                           const SizedBox(height: 3),
                           Row(
                             children: [
                               Icon(
                                 _typeIcon(appointment.type),
-                                color: colors.primary,
-                                size: 16,
+                                color: isDark ? colors.primary : _doctorTeal,
+                                size: 15,
                               ),
                               const SizedBox(width: 4),
                               Expanded(
                                 child: Text(
-                                  appointment.type.label,
+                                  _shortType(appointment.type),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: isDark
+                                        ? colors.onSurfaceVariant
+                                        : _doctorMuted,
+                                    fontSize: 11,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                           Text(
-                            formatPkr(appointment.feePkr),
-                            style: Theme.of(context).textTheme.bodySmall,
+                            _formatCompactPkr(appointment.feePkr),
+                            style: TextStyle(
+                              color: isDark
+                                  ? colors.onSurfaceVariant
+                                  : _doctorMuted,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    if (compactAction)
-                      IconButton.filledTonal(
-                        tooltip: _actionLabel(appointment.status),
-                        onPressed:
-                            isLoading ||
-                                appointment.status ==
-                                    DoctorAppointmentStatus.confirmed
-                            ? null
-                            : onAction,
-                        icon: isLoading
-                            ? const SizedBox.square(
-                                dimension: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
+                    const SizedBox(width: 6),
+                    SizedBox(
+                      width: 68,
+                      child:
+                          appointment.status ==
+                              DoctorAppointmentStatus.inProgress
+                          ? FilledButton(
+                              onPressed: isLoading ? null : onAction,
+                              style: FilledButton.styleFrom(
+                                backgroundColor: _doctorTeal,
+                                minimumSize: const Size(68, 36),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 2,
                                 ),
-                              )
-                            : Icon(
-                                appointment.status ==
-                                        DoctorAppointmentStatus.completed
-                                    ? Icons.description_outlined
-                                    : Icons.play_arrow_rounded,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                textStyle: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                ),
                               ),
-                      )
-                    else
-                      FilledButton.tonal(
-                        onPressed:
-                            isLoading ||
-                                appointment.status ==
-                                    DoctorAppointmentStatus.confirmed
-                            ? null
-                            : onAction,
-                        child: isLoading
-                            ? const SizedBox.square(
-                                dimension: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
+                              child: isLoading
+                                  ? const SizedBox.square(
+                                      dimension: 15,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const FittedBox(child: Text('In Progress')),
+                            )
+                          : OutlinedButton(
+                              onPressed: isLoading ? null : onAction,
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: _doctorTeal,
+                                side: const BorderSide(color: _doctorTeal),
+                                minimumSize: const Size(68, 36),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 2,
                                 ),
-                              )
-                            : Text(_actionLabel(appointment.status)),
-                      ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                textStyle: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              child: isLoading
+                                  ? const SizedBox.square(
+                                      dimension: 15,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : FittedBox(
+                                      child: Text(
+                                        _actionLabel(appointment.status),
+                                      ),
+                                    ),
+                            ),
+                    ),
                   ],
                 ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _NextConsultationCard extends StatelessWidget {
+  const _NextConsultationCard({
+    required this.appointment,
+    required this.onStart,
+  });
+
+  final DoctorAppointmentRecord appointment;
+  final VoidCallback onStart;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const ValueKey('next-consultation-card'),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _doctorTeal,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x26006D5B),
+            blurRadius: 14,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'NEXT CONSULTATION',
+                  style: TextStyle(
+                    color: Color(0xFFBEE9E3),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(99),
+                ),
+                child: Text(
+                  _etaLabel(appointment.scheduledAt),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 22,
+                backgroundImage: AssetImage(appointment.patient.imageAsset),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      appointment.patient.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    Text(
+                      appointment.type.label,
+                      style: const TextStyle(
+                        color: Color(0xFFD7F2EE),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 24, color: Colors.white24),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  '✓ Confirmed',
+                  style: TextStyle(
+                    color: Color(0xFF77E4B1),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Text(
+                '${appointment.durationMinutes} min',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            key: const ValueKey('start-next-consultation'),
+            onPressed: onStart,
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: _doctorTealDark,
+              minimumSize: const Size.fromHeight(44),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            iconAlignment: IconAlignment.end,
+            icon: const Icon(Icons.chevron_right_rounded, size: 18),
+            label: const Text(
+              'Start Consultation',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -909,28 +1402,40 @@ class _EmptyCard extends StatelessWidget {
   final String subtitle;
 
   @override
-  Widget build(BuildContext context) => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(22),
-    decoration: BoxDecoration(
-      color: Theme.of(context).colorScheme.surfaceContainerLow,
-      borderRadius: BorderRadius.circular(18),
-      border: Border.all(
-        color: Theme.of(
-          context,
-        ).colorScheme.outlineVariant.withValues(alpha: .55),
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: isDark ? colors.surfaceContainerHighest : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: isDark ? null : _cardShadow,
       ),
-    ),
-    child: Column(
-      children: [
-        Icon(icon, color: Theme.of(context).colorScheme.primary, size: 32),
-        const SizedBox(height: 8),
-        Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
-        const SizedBox(height: 3),
-        Text(subtitle, textAlign: TextAlign.center),
-      ],
-    ),
-  );
+      child: Column(
+        children: [
+          Icon(icon, color: _doctorTeal, size: 32),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: TextStyle(
+              color: isDark ? colors.onSurface : _doctorText,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: isDark ? colors.onSurfaceVariant : _doctorMuted,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _DashboardLoading extends StatelessWidget {
@@ -985,7 +1490,7 @@ Widget _motion(BuildContext context, Widget child, {required int delay}) {
       .animate(delay: Duration(milliseconds: delay))
       .fadeIn(duration: 220.ms, curve: Curves.easeOutCubic)
       .slideY(
-        begin: .025,
+        begin: 0.025,
         end: 0,
         duration: 240.ms,
         curve: Curves.easeOutCubic,
@@ -994,16 +1499,35 @@ Widget _motion(BuildContext context, Widget child, {required int delay}) {
 
 IconData _typeIcon(DoctorConsultationType type) => switch (type) {
   DoctorConsultationType.video => Icons.videocam_rounded,
-  DoctorConsultationType.audio => Icons.phone_in_talk_rounded,
+  DoctorConsultationType.audio => Icons.mic_none_rounded,
   DoctorConsultationType.clinic => Icons.local_hospital_rounded,
+};
+
+String _shortType(DoctorConsultationType type) => switch (type) {
+  DoctorConsultationType.video => 'Video',
+  DoctorConsultationType.audio => 'Audio',
+  DoctorConsultationType.clinic => 'Clinic',
 };
 
 String _actionLabel(DoctorAppointmentStatus status) => switch (status) {
   DoctorAppointmentStatus.ready => 'Start',
+  DoctorAppointmentStatus.confirmed => 'Start',
   DoctorAppointmentStatus.inProgress => 'In Progress',
   DoctorAppointmentStatus.completed => 'View Summary',
   _ => 'Upcoming',
 };
+
+String _formatCompactPkr(int rupees) {
+  return formatPkr(rupees).replaceFirst('PKR ', 'Rs. ');
+}
+
+String _etaLabel(DateTime value) {
+  final minutes = value.difference(DateTime.now()).inMinutes;
+  if (minutes <= 0) return 'Ready now';
+  if (minutes < 60) return 'in $minutes min';
+  final hours = (minutes / 60).ceil();
+  return 'in $hours hr';
+}
 
 String _relativeTime(DateTime value) {
   final difference = DateTime.now().difference(value);
@@ -1041,4 +1565,30 @@ String _formatDate(DateTime value) {
     'Dec',
   ];
   return '${weekdays[value.weekday - 1]}, ${value.day} ${months[value.month - 1]}';
+}
+
+String _initials(String name) {
+  final parts = name
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((part) => part.isNotEmpty)
+      .toList(growable: false);
+  if (parts.isEmpty) return 'P';
+  if (parts.length == 1) {
+    final value = parts.first;
+    return value.substring(0, value.length >= 2 ? 2 : 1).toUpperCase();
+  }
+  return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+}
+
+Color _avatarColor(String initials) {
+  final seed = initials.codeUnits.fold<int>(0, (sum, value) => sum + value);
+  const colors = [
+    Color(0xFFEF4A8A),
+    Color(0xFF00C896),
+    Color(0xFF5C6CFF),
+    Color(0xFFFF8A00),
+    Color(0xFFD858E8),
+  ];
+  return colors[seed % colors.length];
 }

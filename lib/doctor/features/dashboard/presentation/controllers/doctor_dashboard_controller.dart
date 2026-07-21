@@ -9,11 +9,14 @@ class DoctorDashboardController extends ChangeNotifier {
   DoctorDashboardController({
     required this._getDashboard,
     required this._updateAppointmentStatus,
+    required this._updateAvailability,
   });
 
   final GetDoctorDashboard _getDashboard;
   final UpdateDoctorAppointmentStatus _updateAppointmentStatus;
+  final UpdateDoctorAvailability _updateAvailability;
   final Set<String> _updatingIds = <String>{};
+  bool _isUpdatingAvailability = false;
 
   DoctorDashboardLoadStatus _status = DoctorDashboardLoadStatus.initial;
   DoctorDashboardSnapshot? _snapshot;
@@ -26,7 +29,8 @@ class DoctorDashboardController extends ChangeNotifier {
   DoctorAppointmentFilter get appointmentFilter => _appointmentFilter;
   String? get errorMessage => _errorMessage;
   bool get isLoading => _status == DoctorDashboardLoadStatus.loading;
-  int get notificationCount => pendingRequests.length;
+  int get notificationCount =>
+      _snapshot?.unreadNotifications ?? pendingRequests.length;
 
   UnmodifiableListView<DoctorAppointmentRecord> get pendingRequests =>
       UnmodifiableListView(
@@ -104,6 +108,7 @@ class DoctorDashboardController extends ChangeNotifier {
   }
 
   bool isUpdating(String appointmentId) => _updatingIds.contains(appointmentId);
+  bool get isUpdatingAvailability => _isUpdatingAvailability;
 
   Future<void> acceptRequest(String appointmentId) {
     return updateStatus(appointmentId, DoctorAppointmentStatus.confirmed);
@@ -111,6 +116,38 @@ class DoctorDashboardController extends ChangeNotifier {
 
   Future<void> rejectRequest(String appointmentId) {
     return updateStatus(appointmentId, DoctorAppointmentStatus.cancelled);
+  }
+
+  Future<void> setAvailability(bool isOnline) async {
+    final doctorId = _doctorId;
+    if (doctorId == null || _isUpdatingAvailability) return;
+    final previous = _snapshot?.profile.isOnline;
+    // Optimistic local update so the switch feels immediate.
+    if (_snapshot != null) {
+      _snapshot = _snapshot!.copyWith(
+        profile: _snapshot!.profile.copyWith(isOnline: isOnline),
+      );
+    }
+    _isUpdatingAvailability = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      _snapshot = await _updateAvailability(
+        doctorId: doctorId,
+        isOnline: isOnline,
+      );
+      _status = DoctorDashboardLoadStatus.ready;
+    } catch (_) {
+      if (_snapshot != null && previous != null) {
+        _snapshot = _snapshot!.copyWith(
+          profile: _snapshot!.profile.copyWith(isOnline: previous),
+        );
+      }
+      _errorMessage = 'Could not update availability. Try again.';
+    } finally {
+      _isUpdatingAvailability = false;
+      notifyListeners();
+    }
   }
 
   Future<void> updateStatus(

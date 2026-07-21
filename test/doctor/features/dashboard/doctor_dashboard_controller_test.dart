@@ -17,6 +17,7 @@ void main() {
     return DoctorDashboardController(
       getDashboard: GetDoctorDashboard(repository),
       updateAppointmentStatus: UpdateDoctorAppointmentStatus(repository),
+      updateAvailability: UpdateDoctorAvailability(repository),
     );
   }
 
@@ -26,6 +27,7 @@ void main() {
     return DoctorDashboardController(
       getDashboard: GetDoctorDashboard(repository),
       updateAppointmentStatus: UpdateDoctorAppointmentStatus(repository),
+      updateAvailability: UpdateDoctorAvailability(repository),
     );
   }
 
@@ -38,7 +40,11 @@ void main() {
     expect(controller.snapshot, isNotNull);
     expect(controller.pendingRequests, isNotEmpty);
     expect(controller.todayAppointments.length, greaterThanOrEqualTo(3));
-    expect(controller.notificationCount, controller.pendingRequests.length);
+    expect(controller.notificationCount, 3);
+    expect(
+      controller.notificationCount,
+      controller.snapshot!.unreadNotifications,
+    );
   });
 
   test('appointment filters select pending and completed records', () async {
@@ -177,6 +183,16 @@ class _DashboardRepositoryStub implements DoctorDashboardRepository {
     required String doctorId,
     required String appointmentId,
     required DoctorAppointmentStatus status,
+  }) {
+    final failure = error;
+    if (failure != null) return Future<DoctorDashboardSnapshot>.error(failure);
+    return Future<DoctorDashboardSnapshot>.value(snapshot!);
+  }
+
+  @override
+  Future<DoctorDashboardSnapshot> updateAvailability({
+    required String doctorId,
+    required bool isOnline,
   }) {
     final failure = error;
     if (failure != null) return Future<DoctorDashboardSnapshot>.error(failure);
