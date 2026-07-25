@@ -1,3 +1,4 @@
+import '../../domain/entities/doctor_registration_payload.dart';
 import '../models/auth_user_model.dart';
 
 abstract interface class AuthDataSource {
@@ -13,6 +14,8 @@ abstract interface class AuthDataSource {
     required String emailOrPhone,
     required String password,
   });
+
+  Future<AuthUserModel> registerDoctor(DoctorRegistrationPayload payload);
 
   Future<void> logout();
 }

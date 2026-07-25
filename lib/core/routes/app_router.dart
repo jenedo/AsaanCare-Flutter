@@ -14,10 +14,10 @@ import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/onboarding/presentation/welcome_screen.dart';
 import '../../features/patient/presentation/screens/patient_home_screen.dart';
 import '../../features/patient/presentation/screens/patient_profile_screen.dart';
+import '../../features/medical_records/presentation/controllers/medical_records_controller.dart';
+import '../../features/medical_records/presentation/screens/medical_records_screen.dart';
 import '../../features/pharmacy/presentation/controllers/pharmacy_controller.dart';
 import '../../features/pharmacy/presentation/screens/pharmacy_screen.dart';
-import '../../features/prescriptions/presentation/controllers/prescription_controller.dart';
-import '../../features/prescriptions/presentation/screens/medical_records_screen.dart';
 import '../../features/wallet/presentation/controllers/wallet_controller.dart';
 import '../../features/wallet/presentation/screens/wallet_screen.dart';
 import '../di/service_locator.dart';
@@ -143,17 +143,10 @@ class AppRouter {
         );
 
       case AppRoutes.medicalRecords:
-        final patientId = _readAuthenticatedPatientId(authController);
-
-        if (patientId == null) {
-          return _missingAuthenticatedPatientRoute(settings);
-        }
-
         return _smoothRoute(
           settings: settings,
           child: MedicalRecordsScreen(
-            controller: sl<PrescriptionController>(),
-            patientId: patientId,
+            controller: sl<MedicalRecordsController>(),
           ),
         );
 

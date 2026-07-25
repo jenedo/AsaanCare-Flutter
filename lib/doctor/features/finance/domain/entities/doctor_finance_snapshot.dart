@@ -61,11 +61,11 @@ FinanceDateRange previousFinancePeriodRange(
   required FinanceDateRange current,
 }) {
   return switch (period) {
-    DoctorFinancePeriod.thisMonth || DoctorFinancePeriod.lastMonth =>
-      FinanceDateRange(
-        start: DateTime(current.start.year, current.start.month - 1, 1),
-        end: current.start.subtract(const Duration(milliseconds: 1)),
-      ),
+    DoctorFinancePeriod.thisMonth ||
+    DoctorFinancePeriod.lastMonth => FinanceDateRange(
+      start: DateTime(current.start.year, current.start.month - 1, 1),
+      end: current.start.subtract(const Duration(milliseconds: 1)),
+    ),
     DoctorFinancePeriod.thisWeek => FinanceDateRange(
       start: current.start.subtract(const Duration(days: 7)),
       end: current.start.subtract(const Duration(milliseconds: 1)),

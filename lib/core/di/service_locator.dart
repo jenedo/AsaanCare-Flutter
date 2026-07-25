@@ -1,6 +1,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../doctor/features/dashboard/data/datasources/doctor_dashboard_mock_data_source.dart';
 import '../../doctor/features/dashboard/data/repositories/doctor_dashboard_repository_impl.dart';
@@ -12,7 +13,20 @@ import '../../doctor/features/finance/data/repositories/doctor_finance_repositor
 import '../../doctor/features/finance/domain/repositories/doctor_finance_repository.dart';
 import '../../doctor/features/finance/domain/usecases/get_doctor_finance.dart';
 import '../../doctor/features/finance/presentation/controllers/doctor_finance_controller.dart';
+import '../../doctor/features/patient_notes/data/datasources/doctor_patient_notes_mock_data_source.dart';
+import '../../doctor/features/patient_notes/data/repositories/doctor_patient_notes_repository_impl.dart';
+import '../../doctor/features/patient_notes/domain/repositories/doctor_patient_notes_repository.dart';
+import '../../doctor/features/patient_notes/presentation/controllers/doctor_patient_notes_controller.dart';
+import '../../doctor/features/prescription_writer/data/datasources/doctor_prescription_draft_mock_data_source.dart';
+import '../../doctor/features/prescription_writer/data/repositories/doctor_prescription_draft_repository_impl.dart';
+import '../../doctor/features/prescription_writer/domain/repositories/doctor_prescription_draft_repository.dart';
+import '../../doctor/features/prescription_writer/presentation/controllers/doctor_prescription_controller.dart';
+import '../../doctor/features/profile/data/datasources/doctor_profile_mock_data_source.dart';
+import '../../doctor/features/profile/data/repositories/doctor_profile_repository_impl.dart';
+import '../../doctor/features/profile/domain/repositories/doctor_profile_repository.dart';
+import '../../doctor/features/profile/presentation/controllers/doctor_profile_controller.dart';
 import '../../features/appointments/data/datasources/appointment_mock_data_source.dart';
+import '../../features/appointments/data/datasources/appointment_remote_data_source.dart';
 import '../../features/appointments/data/repositories/appointment_repository_impl.dart';
 import '../../features/appointments/domain/repositories/appointment_repository.dart';
 import '../../features/appointments/domain/usecases/book_appointment.dart';
@@ -21,7 +35,7 @@ import '../../features/appointments/presentation/controllers/appointment_booking
 import '../../features/appointments/presentation/controllers/appointment_list_controller.dart';
 import '../../features/auth/data/datasources/auth_data_source.dart';
 import '../../features/auth/data/datasources/auth_mock_data_source.dart';
-import '../../features/auth/data/datasources/auth_remote_data_source.dart';
+import '../../features/auth/data/datasources/supabase_auth_data_source.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/data/storage/auth_token_store.dart';
 import '../../features/auth/data/storage/secure_auth_token_store.dart';
@@ -29,9 +43,11 @@ import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/domain/usecases/get_current_user.dart';
 import '../../features/auth/domain/usecases/login_user.dart';
 import '../../features/auth/domain/usecases/logout_user.dart';
+import '../../features/auth/domain/usecases/register_doctor.dart';
 import '../../features/auth/domain/usecases/register_patient.dart';
 import '../../features/auth/presentation/controllers/auth_controller.dart';
 import '../../features/doctors/data/datasources/doctor_mock_data_source.dart';
+import '../../features/doctors/data/datasources/doctor_remote_data_source.dart';
 import '../../features/doctors/data/repositories/doctor_repository_impl.dart';
 import '../../features/doctors/domain/repositories/doctor_repository.dart';
 import '../../features/doctors/domain/usecases/get_doctor_detail.dart';
@@ -60,13 +76,24 @@ import '../../features/wallet/domain/usecases/get_wallet_snapshot.dart';
 import '../../features/wallet/domain/usecases/refund_wallet.dart';
 import '../../features/wallet/domain/usecases/wallet_payment_method_actions.dart';
 import '../../features/wallet/presentation/controllers/wallet_controller.dart';
+import '../../features/clinical_prescriptions/data/datasources/clinical_prescription_remote_data_source.dart';
+import '../../features/clinical_prescriptions/data/repositories/clinical_prescription_repository_impl.dart';
+import '../../features/clinical_prescriptions/data/repositories/mock_clinical_prescription_repository.dart';
+import '../../features/clinical_prescriptions/domain/repositories/clinical_prescription_repository.dart';
+import '../../features/clinical_prescriptions/presentation/controllers/clinical_prescriptions_controller.dart';
+import '../../features/medical_records/data/datasources/medical_records_remote_data_source.dart';
+import '../../features/medical_records/data/repositories/medical_records_repository_impl.dart';
+import '../../features/medical_records/data/repositories/mock_medical_records_repository.dart';
+import '../../features/medical_records/domain/repositories/medical_records_repository.dart';
+import '../../features/medical_records/presentation/controllers/medical_records_controller.dart';
 import '../config/app_config.dart';
 import '../network/api_client.dart';
 
 final GetIt sl = GetIt.instance;
 
-Future<void> setupServiceLocator() async {
-  AppConfig.validate();
+Future<void> setupServiceLocator({bool? isMockApi}) async {
+  final useMock = isMockApi ?? AppConfig.useMockApi;
+  // AppConfig.validate(); // disabled: no NestJS backend
 
   // Networking
   sl.registerLazySingleton<http.Client>(() => http.Client());
@@ -86,10 +113,7 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<AuthDataSource>(
     () => AppConfig.useMockApi
         ? AuthMockDataSource()
-        : AuthRemoteDataSource(
-            apiClient: sl<ApiClient>(),
-            tokenStore: sl<AuthTokenStore>(),
-          ),
+        : SupabaseAuthDataSource(client: Supabase.instance.client),
   );
 
   sl.registerLazySingleton<AuthRepository>(
@@ -102,12 +126,16 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<RegisterPatient>(
     () => RegisterPatient(sl<AuthRepository>()),
   );
+  sl.registerLazySingleton<RegisterDoctor>(
+    () => RegisterDoctor(sl<AuthRepository>()),
+  );
   sl.registerLazySingleton<LogoutUser>(() => LogoutUser(sl<AuthRepository>()));
   sl.registerLazySingleton<AuthController>(
     () => AuthController(
       getCurrentUser: sl<GetCurrentUser>(),
       loginUser: sl<LoginUser>(),
       registerPatient: sl<RegisterPatient>(),
+      registerDoctor: sl<RegisterDoctor>(),
       logoutUser: sl<LogoutUser>(),
     ),
   );
@@ -156,10 +184,60 @@ Future<void> setupServiceLocator() async {
     () => DoctorFinanceController(getFinance: sl<GetDoctorFinance>()),
   );
 
+  // Doctor profile, patient notes, and prescription drafting persist per
+  // signed-in session through datasource-backed repositories while controllers
+  // stay screen-scoped and disposable.
+  sl.registerLazySingleton<DoctorProfileMockDataSource>(
+    DoctorProfileMockDataSource.new,
+  );
+  sl.registerLazySingleton<DoctorProfileRepository>(
+    () => DoctorProfileRepositoryImpl(
+      dataSource: sl<DoctorProfileMockDataSource>(),
+    ),
+  );
+  sl.registerFactory<DoctorProfileController>(
+    () => DoctorProfileController(repository: sl<DoctorProfileRepository>()),
+  );
+  sl.registerLazySingleton<DoctorPatientNotesMockDataSource>(
+    DoctorPatientNotesMockDataSource.new,
+  );
+  sl.registerLazySingleton<DoctorPatientNotesRepository>(
+    () => DoctorPatientNotesRepositoryImpl(
+      dataSource: sl<DoctorPatientNotesMockDataSource>(),
+    ),
+  );
+  sl.registerFactory<DoctorPatientNotesController>(
+    () => DoctorPatientNotesController(
+      repository: sl<DoctorPatientNotesRepository>(),
+    ),
+  );
+  sl.registerLazySingleton<DoctorPrescriptionDraftMockDataSource>(
+    DoctorPrescriptionDraftMockDataSource.new,
+  );
+  sl.registerLazySingleton<DoctorPrescriptionDraftRepository>(
+    () => DoctorPrescriptionDraftRepositoryImpl(
+      dataSource: sl<DoctorPrescriptionDraftMockDataSource>(),
+    ),
+  );
+  sl.registerFactory<DoctorPrescriptionController>(
+    () => DoctorPrescriptionController(
+      repository: sl<DoctorPrescriptionDraftRepository>(),
+    ),
+  );
+
   // Doctors
   sl.registerLazySingleton<DoctorMockDataSource>(() => DoctorMockDataSource());
+  sl.registerLazySingleton<DoctorRemoteDataSource>(
+    () => DoctorRemoteDataSource(
+      apiClient: sl<ApiClient>(),
+      tokenProvider: () async =>
+          Supabase.instance.client.auth.currentSession?.accessToken,
+    ),
+  );
   sl.registerLazySingleton<DoctorRepository>(
-    () => DoctorRepositoryImpl(mockDataSource: sl<DoctorMockDataSource>()),
+    () => AppConfig.useMockApi
+        ? DoctorRepositoryImpl(mockDataSource: sl<DoctorMockDataSource>())
+        : DoctorRepositoryImpl(remoteDataSource: sl<DoctorRemoteDataSource>()),
   );
   sl.registerLazySingleton<GetDoctors>(
     () => GetDoctors(sl<DoctorRepository>()),
@@ -178,10 +256,21 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<AppointmentMockDataSource>(
     () => AppointmentMockDataSource(),
   );
-  sl.registerLazySingleton<AppointmentRepository>(
-    () => AppointmentRepositoryImpl(
-      mockDataSource: sl<AppointmentMockDataSource>(),
+  sl.registerLazySingleton<AppointmentRemoteDataSource>(
+    () => AppointmentRemoteDataSource(
+      apiClient: sl<ApiClient>(),
+      tokenProvider: () async =>
+          Supabase.instance.client.auth.currentSession?.accessToken,
     ),
+  );
+  sl.registerLazySingleton<AppointmentRepository>(
+    () => AppConfig.useMockApi
+        ? AppointmentRepositoryImpl(
+            mockDataSource: sl<AppointmentMockDataSource>(),
+          )
+        : AppointmentRepositoryImpl(
+            remoteDataSource: sl<AppointmentRemoteDataSource>(),
+          ),
   );
   sl.registerLazySingleton<BookAppointment>(
     () => BookAppointment(sl<AppointmentRepository>()),
@@ -277,5 +366,72 @@ Future<void> setupServiceLocator() async {
       uploadPrescription: sl<UploadPrescription>(),
       deletePrescription: sl<DeletePrescription>(),
     ),
+  );
+
+  // Clinical Prescriptions
+  if (useMock) {
+    sl.registerLazySingleton<ClinicalPrescriptionRepository>(
+      () => MockClinicalPrescriptionRepository(),
+    );
+  } else {
+    sl.registerLazySingleton<ClinicalPrescriptionRemoteDataSource>(
+      () => ClinicalPrescriptionRemoteDataSource(
+        apiClient: sl<ApiClient>(),
+        tokenProvider: () async {
+          try {
+            return Supabase.instance.client.auth.currentSession?.accessToken;
+          } catch (_) {
+            return null;
+          }
+        },
+      ),
+    );
+    sl.registerLazySingleton<ClinicalPrescriptionRepository>(
+      () => ClinicalPrescriptionRepositoryImpl(
+        remoteDataSource: sl<ClinicalPrescriptionRemoteDataSource>(),
+      ),
+    );
+  }
+
+  // Medical Records
+  if (useMock) {
+    sl.registerLazySingleton<MedicalRecordsRepository>(
+      () => MockMedicalRecordsRepository(),
+    );
+  } else {
+    sl.registerLazySingleton<MedicalRecordsRemoteDataSource>(
+      () => MedicalRecordsRemoteDataSource(
+        apiClient: sl<ApiClient>(),
+        tokenProvider: () async {
+          try {
+            return Supabase.instance.client.auth.currentSession?.accessToken;
+          } catch (_) {
+            return null;
+          }
+        },
+        supabaseClient: () {
+          try {
+            return Supabase.instance.client;
+          } catch (_) {
+            return null;
+          }
+        }(),
+      ),
+    );
+    sl.registerLazySingleton<MedicalRecordsRepository>(
+      () => MedicalRecordsRepositoryImpl(
+        remoteDataSource: sl<MedicalRecordsRemoteDataSource>(),
+      ),
+    );
+  }
+
+  sl.registerFactory<ClinicalPrescriptionsController>(
+    () => ClinicalPrescriptionsController(
+      repository: sl<ClinicalPrescriptionRepository>(),
+    ),
+  );
+
+  sl.registerFactory<MedicalRecordsController>(
+    () => MedicalRecordsController(repository: sl<MedicalRecordsRepository>()),
   );
 }

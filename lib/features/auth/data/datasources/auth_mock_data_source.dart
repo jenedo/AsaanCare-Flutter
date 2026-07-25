@@ -1,4 +1,5 @@
 import '../../domain/entities/auth_user.dart';
+import '../../domain/entities/doctor_registration_payload.dart';
 import '../../domain/exceptions/auth_exception.dart';
 import '../models/auth_user_model.dart';
 import 'auth_data_source.dart';
@@ -33,6 +34,7 @@ class AuthMockDataSource implements AuthDataSource {
   final Map<String, _MockAccount> _accounts = {};
   AuthUserModel? _currentUser;
   int _nextPatientNumber = 2;
+  int _nextDoctorNumber = 2;
 
   @override
   Future<AuthUserModel?> getCurrentUser() async {
@@ -95,6 +97,50 @@ class AuthMockDataSource implements AuthDataSource {
     _accounts[identity] = _MockAccount(user: user, password: password);
 
     // Registration does not create a login session because the UI routes to Login.
+    return user;
+  }
+
+  @override
+  Future<AuthUserModel> registerDoctor(
+    DoctorRegistrationPayload payload,
+  ) async {
+    await Future<void>.delayed(const Duration(milliseconds: 450));
+
+    final cleanName = payload.fullName.trim();
+    final identity = _normalizeIdentity(payload.email);
+
+    if (cleanName.length < 2) {
+      throw const AuthException('Enter your full name.');
+    }
+
+    _validateIdentity(identity);
+    _validatePassword(payload.password);
+
+    if (payload.pmdcOrLicenseNumber.trim().isEmpty) {
+      throw const AuthException('Enter your PMDC / license number.');
+    }
+
+    if (payload.specialty.trim().isEmpty) {
+      throw const AuthException('Select your specialty.');
+    }
+
+    if (_accounts.containsKey(identity)) {
+      throw const AuthException(
+        'An account already exists for this email/phone.',
+      );
+    }
+
+    final doctorNumber = _nextDoctorNumber++;
+    final user = AuthUserModel(
+      id: 'mock_doctor_${doctorNumber.toString().padLeft(3, '0')}',
+      fullName: cleanName,
+      emailOrPhone: payload.email.trim(),
+      role: UserRole.doctor,
+    );
+
+    _accounts[identity] = _MockAccount(user: user, password: payload.password);
+    _currentUser = user;
+
     return user;
   }
 

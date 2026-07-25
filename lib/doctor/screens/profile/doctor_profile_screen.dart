@@ -1,162 +1,186 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/di/service_locator.dart';
+import '../../../features/auth/presentation/controllers/auth_controller.dart';
+import '../../features/profile/data/datasources/doctor_profile_mock_data_source.dart';
+import '../../features/profile/data/repositories/doctor_profile_repository_impl.dart';
+import '../../features/profile/domain/entities/doctor_profile_state.dart';
+import '../../features/profile/presentation/controllers/doctor_profile_controller.dart';
+
 class DoctorProfileScreen extends StatefulWidget {
-  const DoctorProfileScreen({super.key, this.showBackButton = true});
+  const DoctorProfileScreen({
+    super.key,
+    this.showBackButton = true,
+    this.doctorId,
+    this.controller,
+  });
+
   final bool showBackButton;
+  final String? doctorId;
+  final DoctorProfileController? controller;
+
   @override
   State<DoctorProfileScreen> createState() => _DoctorProfileScreenState();
 }
 
 class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
-  int _page = 0;
-  String _name = 'Dr. Ali Raza';
-  String _specialty = 'General Physician';
-  String _qualification = 'MBBS, FCPS';
-  String _clinic = 'City Care Hospital';
-  String _address = 'Gulberg, Lahore';
-  int _fee = 2000;
-  final Set<String> _days = {'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'};
-  bool _autoApprove = false;
-  bool _reschedule = true;
-  bool _video = true;
-  bool _recordingConsent = false;
-  String _phone = '+92 300 1234567';
-  String _email = 'dr.aliraza@example.com';
-  String _language = 'English';
-  String _appearance = 'System default';
-  String _bank = 'HBL - **** 4281';
-  bool _push = true;
-  bool _sms = false;
-  bool _twoFactor = true;
-  bool _public = true;
+  late final DoctorProfileController _controller =
+      widget.controller ??
+      (sl.isRegistered<DoctorProfileController>()
+          ? sl<DoctorProfileController>()
+          : DoctorProfileController(
+              repository: DoctorProfileRepositoryImpl(
+                dataSource: DoctorProfileMockDataSource(),
+              ),
+            ));
+
+  DoctorProfileState get _profile => _controller.state;
+
+  @override
+  void initState() {
+    super.initState();
+    final authController = sl.isRegistered<AuthController>()
+        ? sl<AuthController>()
+        : null;
+    final doctorId =
+        widget.doctorId ?? authController?.currentUser?.id ?? 'doctor_demo';
+    _controller.load(doctorId: doctorId);
+  }
+
+  @override
+  void dispose() {
+    if (widget.controller == null) {
+      _controller.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 240),
-      child: switch (_page) {
-        0 => _ProfileHome(
-          key: const ValueKey('profile'),
-          name: _name,
-          specialty: _specialty,
-          qualification: _qualification,
-          onEdit: _editProfile,
-          onPublic: () => _infoSheet(
-            'Public Profile Preview',
-            _PublicPreview(name: _name, specialty: _specialty, fee: _fee),
-          ),
-          onPractice: () => _setPage(1),
-          onAccount: () => _setPage(2),
-        ),
-        1 => _PracticePage(
-          key: const ValueKey('practice'),
-          onBack: _back,
-          specialty: _specialty,
-          qualification: _qualification,
-          clinic: _clinic,
-          address: _address,
-          fee: _fee,
-          days: _days,
-          autoApprove: _autoApprove,
-          reschedule: _reschedule,
-          video: _video,
-          recordingConsent: _recordingConsent,
-          onProfessional: _editProfessional,
-          onClinic: _editClinic,
-          onFees: _editFees,
-          onSchedule: _editSchedule,
-          onPreferences: _editPreferences,
-          onVideo: _editVideo,
-        ),
-        2 => _AccountPage(
-          key: const ValueKey('account'),
-          onBack: _back,
-          phone: _phone,
-          email: _email,
-          language: _language,
-          appearance: _appearance,
-          bank: _bank,
-          onPersonal: _editProfile,
-          onPhone: _editPhone,
-          onEmail: _editEmail,
-          onPassword: _changePassword,
-          onDocuments: () => _infoSheet(
-            'Verification Documents',
-            const Column(
-              children: [
-                _InfoLine(
-                  icon: Icons.badge_outlined,
-                  title: 'CNIC',
-                  value: 'Approved',
-                ),
-                _InfoLine(
-                  icon: Icons.medical_information_outlined,
-                  title: 'PMDC certificate',
-                  value: 'Approved',
-                ),
-                _InfoLine(
-                  icon: Icons.local_hospital_outlined,
-                  title: 'Clinic license',
-                  value: 'Approved',
-                ),
-              ],
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) => AnimatedSwitcher(
+        duration: const Duration(milliseconds: 240),
+        child: switch (_profile.page) {
+          0 => _ProfileHome(
+            key: const ValueKey('profile'),
+            name: _profile.name,
+            specialty: _profile.specialty,
+            qualification: _profile.qualification,
+            onEdit: _editProfile,
+            onPublic: () => _infoSheet(
+              'Public Profile Preview',
+              _PublicPreview(
+                name: _profile.name,
+                specialty: _profile.specialty,
+                fee: _profile.fee,
+              ),
             ),
+            onPractice: () => _setPage(1),
+            onAccount: () => _setPage(2),
           ),
-          onPrivacy: _privacy,
-          onBank: _editBank,
-          onNotifications: _notifications,
-          onLanguage: () => _optionSheet(
-            'Language',
-            ['English', 'Urdu'],
-            _language,
-            (v) => setState(() => _language = v),
+          1 => _PracticePage(
+            key: const ValueKey('practice'),
+            onBack: _back,
+            specialty: _profile.specialty,
+            qualification: _profile.qualification,
+            clinic: _profile.clinic,
+            address: _profile.address,
+            fee: _profile.fee,
+            days: _profile.days.toSet(),
+            autoApprove: _profile.autoApprove,
+            reschedule: _profile.reschedule,
+            video: _profile.video,
+            recordingConsent: _profile.recordingConsent,
+            onProfessional: _editProfessional,
+            onClinic: _editClinic,
+            onFees: _editFees,
+            onSchedule: _editSchedule,
+            onPreferences: _editPreferences,
+            onVideo: _editVideo,
           ),
-          onAppearance: () => _optionSheet(
-            'Appearance',
-            ['System default', 'Light', 'Dark'],
-            _appearance,
-            (v) => setState(() => _appearance = v),
+          2 => _AccountPage(
+            key: const ValueKey('account'),
+            onBack: _back,
+            phone: _profile.phone,
+            email: _profile.email,
+            language: _profile.language,
+            appearance: _profile.appearance,
+            bank: _profile.bank,
+            onPersonal: _editProfile,
+            onPhone: _editPhone,
+            onEmail: _editEmail,
+            onPassword: _changePassword,
+            onDocuments: () => _infoSheet(
+              'Verification Documents',
+              const Column(
+                children: [
+                  _InfoLine(
+                    icon: Icons.badge_outlined,
+                    title: 'CNIC',
+                    value: 'Approved',
+                  ),
+                  _InfoLine(
+                    icon: Icons.medical_information_outlined,
+                    title: 'PMDC certificate',
+                    value: 'Approved',
+                  ),
+                  _InfoLine(
+                    icon: Icons.local_hospital_outlined,
+                    title: 'Clinic license',
+                    value: 'Approved',
+                  ),
+                ],
+              ),
+            ),
+            onPrivacy: _privacy,
+            onBank: _editBank,
+            onNotifications: _notifications,
+            onLanguage: () => _optionSheet(
+              'Language',
+              ['English', 'Urdu'],
+              _profile.language,
+              _controller.saveLanguage,
+            ),
+            onAppearance: () => _optionSheet(
+              'Appearance',
+              ['System default', 'Light', 'Dark'],
+              _profile.appearance,
+              _controller.saveAppearance,
+            ),
+            onInfo: _supportInfo,
+            onLogout: _logout,
           ),
-          onInfo: _supportInfo,
-          onLogout: _logout,
-        ),
-        _ => const SizedBox.shrink(),
-      },
+          _ => const SizedBox.shrink(),
+        },
+      ),
     );
   }
 
   void _setPage(int page) {
     HapticFeedback.lightImpact();
-    setState(() => _page = page);
+    _controller.setPage(page);
   }
 
   void _back() {
-    if (_page != 0) _setPage(0);
+    if (_profile.page != 0) _setPage(0);
   }
 
   void _editProfile() {
-    final name = TextEditingController(text: _name);
-    final specialty = TextEditingController(text: _specialty);
+    final name = TextEditingController(text: _profile.name);
+    final specialty = TextEditingController(text: _profile.specialty);
     _formSheet(
       'Edit Profile',
       [_field('Doctor name', name), _field('Specialty', specialty)],
-      () {
-        setState(() {
-          if (name.text.trim().isNotEmpty) {
-            _name = name.text.trim();
-          }
-          if (specialty.text.trim().isNotEmpty) {
-            _specialty = specialty.text.trim();
-          }
-        });
-      },
+      () =>
+          _controller.saveIdentity(name: name.text, specialty: specialty.text),
     );
   }
 
   void _editProfessional() {
-    final specialty = TextEditingController(text: _specialty);
-    final qualification = TextEditingController(text: _qualification);
+    final specialty = TextEditingController(text: _profile.specialty);
+    final qualification = TextEditingController(text: _profile.qualification);
     _formSheet(
       'Professional Information',
       [
@@ -168,36 +192,25 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
           value: 'Verified',
         ),
       ],
-      () {
-        setState(() {
-          if (specialty.text.trim().isNotEmpty) {
-            _specialty = specialty.text.trim();
-          }
-          if (qualification.text.trim().isNotEmpty) {
-            _qualification = qualification.text.trim();
-          }
-        });
-      },
+      () => _controller.saveProfessional(
+        specialty: specialty.text,
+        qualification: qualification.text,
+      ),
     );
   }
 
   void _editClinic() {
-    final clinic = TextEditingController(text: _clinic);
-    final address = TextEditingController(text: _address);
+    final clinic = TextEditingController(text: _profile.clinic);
+    final address = TextEditingController(text: _profile.address);
     _formSheet(
       'Clinic & Hospital',
       [_field('Clinic / hospital', clinic), _field('Address', address)],
-      () {
-        setState(() {
-          if (clinic.text.trim().isNotEmpty) _clinic = clinic.text.trim();
-          if (address.text.trim().isNotEmpty) _address = address.text.trim();
-        });
-      },
+      () => _controller.saveClinic(clinic: clinic.text, address: address.text),
     );
   }
 
   void _editFees() {
-    final fee = TextEditingController(text: _fee.toString());
+    final fee = TextEditingController(text: _profile.fee.toString());
     _formSheet(
       'Consultation Fees',
       [
@@ -209,38 +222,32 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
       ],
       () {
         final value = int.tryParse(fee.text.trim());
-        if (value != null && value > 0) setState(() => _fee = value);
+        if (value != null && value > 0) {
+          _controller.saveFee(value);
+        }
       },
     );
   }
 
   void _editPhone() {
-    final c = TextEditingController(text: _phone);
-    _formSheet(
-      'Phone Number',
-      [_field('Phone number', c, keyboardType: TextInputType.phone)],
-      () {
-        if (c.text.trim().isNotEmpty) setState(() => _phone = c.text.trim());
-      },
-    );
+    final c = TextEditingController(text: _profile.phone);
+    _formSheet('Phone Number', [
+      _field('Phone number', c, keyboardType: TextInputType.phone),
+    ], () => _controller.savePhone(c.text));
   }
 
   void _editEmail() {
-    final c = TextEditingController(text: _email);
-    _formSheet(
-      'Email Address',
-      [_field('Email address', c, keyboardType: TextInputType.emailAddress)],
-      () {
-        if (c.text.trim().isNotEmpty) setState(() => _email = c.text.trim());
-      },
-    );
+    final c = TextEditingController(text: _profile.email);
+    _formSheet('Email Address', [
+      _field('Email address', c, keyboardType: TextInputType.emailAddress),
+    ], () => _controller.saveEmail(c.text));
   }
 
   void _editBank() {
-    final c = TextEditingController(text: _bank);
-    _formSheet('Bank & Payout Details', [_field('Bank account', c)], () {
-      if (c.text.trim().isNotEmpty) setState(() => _bank = c.text.trim());
-    });
+    final c = TextEditingController(text: _profile.bank);
+    _formSheet('Bank & Payout Details', [
+      _field('Bank account', c),
+    ], () => _controller.saveBank(c.text));
   }
 
   void _changePassword() {
@@ -253,7 +260,7 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
   }
 
   void _editSchedule() {
-    final selected = Set<String>.from(_days);
+    final selected = Set<String>.from(_profile.days);
     _stateSheet(
       'Availability & Schedule',
       (context, setSheetState) {
@@ -275,19 +282,13 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
           ],
         );
       },
-      () {
-        setState(() {
-          _days
-            ..clear()
-            ..addAll(selected.isEmpty ? {'Mon'} : selected);
-        });
-      },
+      () => _controller.saveDays(selected.toList(growable: false)),
     );
   }
 
   void _editPreferences() {
-    var auto = _autoApprove;
-    var reschedule = _reschedule;
+    var auto = _profile.autoApprove;
+    var reschedule = _profile.reschedule;
     _stateSheet(
       'Appointment Preferences',
       (context, setSheetState) => Column(
@@ -306,16 +307,16 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
           ),
         ],
       ),
-      () => setState(() {
-        _autoApprove = auto;
-        _reschedule = reschedule;
-      }),
+      () => _controller.savePreferences(
+        autoApprove: auto,
+        reschedule: reschedule,
+      ),
     );
   }
 
   void _editVideo() {
-    var video = _video;
-    var consent = _recordingConsent;
+    var video = _profile.video;
+    var consent = _profile.recordingConsent;
     _stateSheet(
       'Video Consultation Settings',
       (context, setSheetState) => Column(
@@ -334,16 +335,16 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
           ),
         ],
       ),
-      () => setState(() {
-        _video = video;
-        _recordingConsent = consent;
-      }),
+      () => _controller.saveVideoSettings(
+        video: video,
+        recordingConsent: consent,
+      ),
     );
   }
 
   void _privacy() {
-    var two = _twoFactor;
-    var pub = _public;
+    var two = _profile.twoFactor;
+    var pub = _profile.public;
     _stateSheet(
       'Privacy & Security',
       (context, setSheetState) => Column(
@@ -362,16 +363,13 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
           ),
         ],
       ),
-      () => setState(() {
-        _twoFactor = two;
-        _public = pub;
-      }),
+      () => _controller.savePrivacy(twoFactor: two, isPublic: pub),
     );
   }
 
   void _notifications() {
-    var push = _push;
-    var sms = _sms;
+    var push = _profile.push;
+    var sms = _profile.sms;
     _stateSheet(
       'Notifications',
       (context, setSheetState) => Column(
@@ -390,10 +388,7 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
           ),
         ],
       ),
-      () => setState(() {
-        _push = push;
-        _sms = sms;
-      }),
+      () => _controller.saveNotifications(push: push, sms: sms),
     );
   }
 
@@ -426,9 +421,14 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: _Colors.red),
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(dialogContext);
-              _saved('Logged out successfully');
+              if (sl.isRegistered<AuthController>()) {
+                await sl<AuthController>().logout();
+              }
+              if (mounted) {
+                _saved('Logged out successfully');
+              }
             },
             child: const Text('Log out'),
           ),

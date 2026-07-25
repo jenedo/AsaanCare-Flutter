@@ -129,6 +129,7 @@ class _DoctorAppState extends State<DoctorApp> {
                     onSignIn: () {
                       Navigator.of(registrationContext).pop();
                     },
+                    onRegisterDoctor: availableAuthController.registerDoctor,
                   );
                 },
               ),

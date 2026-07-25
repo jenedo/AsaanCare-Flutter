@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/di/service_locator.dart';
+import '../../features/patient_notes/data/datasources/doctor_patient_notes_mock_data_source.dart';
+import '../../features/patient_notes/data/repositories/doctor_patient_notes_repository_impl.dart';
+import '../../features/patient_notes/presentation/controllers/doctor_patient_notes_controller.dart';
 import '../consultation/doctor_consultation_screen.dart';
 import '../consultation/write_prescription_screen.dart';
 
@@ -11,6 +15,7 @@ class DoctorPatientProfileScreen extends StatefulWidget {
     required this.patientGender,
     required this.appointmentId,
     this.imageAsset = 'assets/images/doctor_ali.png',
+    this.notesController,
   });
 
   final String patientName;
@@ -18,6 +23,7 @@ class DoctorPatientProfileScreen extends StatefulWidget {
   final String patientGender;
   final String appointmentId;
   final String imageAsset;
+  final DoctorPatientNotesController? notesController;
 
   @override
   State<DoctorPatientProfileScreen> createState() =>
@@ -27,10 +33,29 @@ class DoctorPatientProfileScreen extends StatefulWidget {
 class _DoctorPatientProfileScreenState
     extends State<DoctorPatientProfileScreen> {
   static const _teal = Color(0xFF078D83);
-  int _tabIndex = 0;
-  final List<String> _notes = [
-    'Patient responded well to antibiotics. Follow up in 2 weeks if symptoms persist.',
-  ];
+  late final DoctorPatientNotesController _notesController =
+      widget.notesController ??
+      (sl.isRegistered<DoctorPatientNotesController>()
+          ? sl<DoctorPatientNotesController>()
+          : DoctorPatientNotesController(
+              repository: DoctorPatientNotesRepositoryImpl(
+                dataSource: DoctorPatientNotesMockDataSource(),
+              ),
+            ));
+
+  @override
+  void initState() {
+    super.initState();
+    _notesController.load(patientRecordId: widget.appointmentId);
+  }
+
+  @override
+  void dispose() {
+    if (widget.notesController == null) {
+      _notesController.dispose();
+    }
+    super.dispose();
+  }
 
   void _showMessage(String value) {
     ScaffoldMessenger.of(context)
@@ -93,7 +118,7 @@ class _DoctorPatientProfileScreenState
       builder: (_) => const _AddNoteSheet(),
     );
     if (note != null && note.isNotEmpty && mounted) {
-      setState(() => _notes.insert(0, note));
+      await _notesController.addNote(note);
       _showMessage('Clinical note saved.');
     }
   }
@@ -206,54 +231,61 @@ class _DoctorPatientProfileScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      bottomNavigationBar: _PatientBottomActions(
-        onFollowUp: _scheduleFollowUp,
-        onConsultation: _startConsultation,
-      ),
-      body: SafeArea(
-        bottom: false,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 620),
-            child: Column(
-              children: [
-                _ProfileTopBar(
-                  onBack: () => Navigator.of(context).pop(),
-                  onCall: () =>
-                      _showMessage('Calling ${widget.patientName}...'),
-                  onMessage: _openMessage,
-                ),
-                _PatientHero(widget: widget),
-                const SizedBox(height: 12),
-                const _PatientStats(),
-                const SizedBox(height: 12),
-                _ProfileTabs(
-                  selected: _tabIndex,
-                  onSelected: (index) => setState(() => _tabIndex = index),
-                ),
-                Expanded(
-                  child: IndexedStack(
-                    index: _tabIndex,
-                    children: [
-                      _OverviewTab(
-                        patientName: widget.patientName,
-                        onEdit: () =>
-                            _showMessage('Patient information editor opened.'),
-                        onAddNote: _addNote,
-                        onPrescription: _newPrescription,
-                        onOrderTest: _orderTest,
-                        onFollowUp: _scheduleFollowUp,
-                      ),
-                      const _HistoryTab(),
-                      _PrescriptionsTab(onNewPrescription: _newPrescription),
-                      const _ReportsTab(),
-                      _NotesTab(notes: _notes, onAdd: _addNote),
-                    ],
+    return AnimatedBuilder(
+      animation: _notesController,
+      builder: (context, _) => Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        bottomNavigationBar: _PatientBottomActions(
+          onFollowUp: _scheduleFollowUp,
+          onConsultation: _startConsultation,
+        ),
+        body: SafeArea(
+          bottom: false,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 620),
+              child: Column(
+                children: [
+                  _ProfileTopBar(
+                    onBack: () => Navigator.of(context).pop(),
+                    onCall: () =>
+                        _showMessage('Calling ${widget.patientName}...'),
+                    onMessage: _openMessage,
                   ),
-                ),
-              ],
+                  _PatientHero(widget: widget),
+                  const SizedBox(height: 12),
+                  const _PatientStats(),
+                  const SizedBox(height: 12),
+                  _ProfileTabs(
+                    selected: _notesController.state.selectedTab,
+                    onSelected: _notesController.selectTab,
+                  ),
+                  Expanded(
+                    child: IndexedStack(
+                      index: _notesController.state.selectedTab,
+                      children: [
+                        _OverviewTab(
+                          patientName: widget.patientName,
+                          onEdit: () => _showMessage(
+                            'Patient information editor opened.',
+                          ),
+                          onAddNote: _addNote,
+                          onPrescription: _newPrescription,
+                          onOrderTest: _orderTest,
+                          onFollowUp: _scheduleFollowUp,
+                        ),
+                        const _HistoryTab(),
+                        _PrescriptionsTab(onNewPrescription: _newPrescription),
+                        const _ReportsTab(),
+                        _NotesTab(
+                          notes: _notesController.state.notes,
+                          onAdd: _addNote,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

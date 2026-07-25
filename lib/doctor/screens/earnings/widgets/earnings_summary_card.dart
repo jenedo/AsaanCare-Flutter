@@ -73,10 +73,7 @@ class EarningsSummaryCard extends StatelessWidget {
             builder: (context, constraints) {
               final compact = MediaQuery.sizeOf(context).width < 360;
               final stats = [
-                _Stat(
-                  value: '$consultationCount',
-                  label: 'Consultations',
-                ),
+                _Stat(value: '$consultationCount', label: 'Consultations'),
                 _Stat(value: formatPkr(pendingPkr), label: 'Pending'),
                 _Stat(
                   value: growthLabel,

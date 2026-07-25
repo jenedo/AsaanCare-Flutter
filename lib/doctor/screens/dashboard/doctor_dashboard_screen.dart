@@ -261,7 +261,7 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
         controller: widget.financeController,
         dashboardController: widget.dashboardController,
       ),
-      const DoctorProfileScreen(showBackButton: false),
+      DoctorProfileScreen(showBackButton: false, doctorId: widget.doctorId),
     ];
 
     const navTeal = Color(0xFF006D5B);

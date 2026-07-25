@@ -13,7 +13,7 @@ class MedicalRecordsScreen extends StatefulWidget {
   const MedicalRecordsScreen({
     super.key,
     required this.controller,
-    this.patientId = PrescriptionController.mockPatientId,
+    required this.patientId,
   });
 
   final PrescriptionController controller;

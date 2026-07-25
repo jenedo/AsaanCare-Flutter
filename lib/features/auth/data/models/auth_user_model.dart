@@ -9,22 +9,49 @@ class AuthUserModel extends AuthUser {
   });
 
   factory AuthUserModel.fromJson(Map<String, dynamic> json) {
-    final role = _optionalString(json, const ['role']);
+    final roleValue = _optionalString(json, const ['role']);
 
-    if (role == null) {
+    if (roleValue == null) {
       throw const FormatException('Required user role is missing.');
+    }
+
+    final role = _roleFromString(roleValue);
+    final profile = switch (role) {
+      UserRole.patient => _optionalMap(json, const [
+        'patientProfile',
+        'patient_profile',
+      ]),
+      UserRole.doctor => _optionalMap(json, const [
+        'doctorProfile',
+        'doctor_profile',
+      ]),
+      UserRole.admin => null,
+    };
+
+    final fullName =
+        _optionalString(json, const ['fullName', 'full_name', 'name']) ??
+        (profile == null
+            ? null
+            : _optionalString(profile, const [
+                'fullName',
+                'full_name',
+                'name',
+              ]));
+
+    if (fullName == null) {
+      throw const FormatException('Required user full name is missing.');
     }
 
     return AuthUserModel(
       id: _requiredString(json, const ['id', 'userId', 'user_id']),
-      fullName: _requiredString(json, const ['fullName', 'full_name', 'name']),
+      fullName: fullName,
       emailOrPhone: _requiredString(json, const [
         'emailOrPhone',
         'email_or_phone',
         'email',
         'phone',
       ]),
-      role: _roleFromString(role),
+      role: role,
     );
   }
 
@@ -55,6 +82,23 @@ class AuthUserModel extends AuthUser {
         return value.toString().trim();
       }
     }
+    return null;
+  }
+
+  static Map<String, dynamic>? _optionalMap(
+    Map<String, dynamic> json,
+    List<String> keys,
+  ) {
+    for (final key in keys) {
+      final value = json[key];
+      if (value is Map<String, dynamic>) {
+        return value;
+      }
+      if (value is Map) {
+        return Map<String, dynamic>.from(value);
+      }
+    }
+
     return null;
   }
 

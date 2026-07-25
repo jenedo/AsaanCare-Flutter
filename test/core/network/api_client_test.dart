@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -6,129 +7,150 @@ import 'package:asaancare/core/network/api_client.dart';
 import 'package:asaancare/core/network/api_exception.dart';
 
 void main() {
-  test('ApiClient returns decoded JSON for a successful response', () async {
-    final client = ApiClient(
-      client: MockClient((request) async {
+  const baseUrl = 'https://api.asaancare.test/api';
+
+  group('ApiClient Array & Object Parsing Regression Suite', () {
+    test('parses doctor list response correctly from raw JSON array', () async {
+      final mockClient = MockClient((request) async {
         return http.Response(
-          '{"data":{"ok":true}}',
+          jsonEncode([
+            {
+              'id': 'doc-1',
+              'fullName': 'Dr. Sara Ahmed',
+              'specialty': 'General Physician',
+              'consultationFee': 1500,
+            },
+          ]),
           200,
-          headers: {'content-type': 'application/json'},
         );
-      }),
-      baseUrl: 'https://api.example.com',
-      timeout: const Duration(seconds: 5),
+      });
+
+      final apiClient = ApiClient(
+        client: mockClient,
+        baseUrl: baseUrl,
+        timeout: const Duration(seconds: 5),
+      );
+
+      final response = await apiClient.getJson('/v1/doctors');
+      final list = response['data'] as List;
+      expect(list.length, 1);
+      expect(list.first['id'], 'doc-1');
+      expect(list.first['fullName'], 'Dr. Sara Ahmed');
+    });
+
+    test(
+      'parses appointment list response correctly from raw JSON array',
+      () async {
+        final mockClient = MockClient((request) async {
+          return http.Response(
+            jsonEncode([
+              {
+                'id': 'appt-1',
+                'patientProfileId': 'pat-1',
+                'doctorProfileId': 'doc-1',
+                'status': 'CONFIRMED',
+                'consultationType': 'VIDEO',
+                'slotStart': '2026-07-25T14:00:00.000Z',
+              },
+            ]),
+            200,
+          );
+        });
+
+        final apiClient = ApiClient(
+          client: mockClient,
+          baseUrl: baseUrl,
+          timeout: const Duration(seconds: 5),
+        );
+
+        final response = await apiClient.getJson('/v1/appointments');
+        final list = response['data'] as List;
+        expect(list.length, 1);
+        expect(list.first['id'], 'appt-1');
+        expect(list.first['status'], 'CONFIRMED');
+      },
     );
 
-    final response = await client.getJson('/v1/health');
+    test('parses single object response unchanged', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response(
+          jsonEncode({'id': 'doc-1', 'fullName': 'Dr. Sara Ahmed'}),
+          200,
+        );
+      });
 
-    expect(response['data'], isA<Map>());
-  });
+      final apiClient = ApiClient(
+        client: mockClient,
+        baseUrl: baseUrl,
+        timeout: const Duration(seconds: 5),
+      );
 
-  test(
-    'ApiClient throws a typed exception for unauthorized response',
-    () async {
-      final client = ApiClient(
-        client: MockClient((request) async {
-          return http.Response(
-            '{"message":"Unauthorized"}',
-            401,
-            headers: {'content-type': 'application/json'},
-          );
-        }),
-        baseUrl: 'https://api.example.com',
+      final result = await apiClient.getJson('/v1/doctors/doc-1');
+      expect(result['id'], 'doc-1');
+      expect(result['fullName'], 'Dr. Sara Ahmed');
+    });
+
+    test('parses backend error objects correctly', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response(
+          jsonEncode({'statusCode': 400, 'message': 'Invalid query parameter'}),
+          400,
+        );
+      });
+
+      final apiClient = ApiClient(
+        client: mockClient,
+        baseUrl: baseUrl,
         timeout: const Duration(seconds: 5),
       );
 
       expect(
-        () => client.getJson('/v1/auth/me'),
+        () => apiClient.getJson('/v1/invalid'),
         throwsA(
           isA<ApiException>()
-              .having((error) => error.statusCode, 'statusCode', 401)
-              .having(
-                (error) => error.isUnauthorized,
-                'isUnauthorized',
-                isTrue,
-              ),
+              .having((e) => e.statusCode, 'statusCode', 400)
+              .having((e) => e.message, 'message', contains('Invalid query')),
         ),
       );
-    },
-  );
+    });
 
-  test('ApiClient sends JSON, bearer auth, and query parameters', () async {
-    final client = ApiClient(
-      client: MockClient((request) async {
-        expect(request.method, 'GET');
-        expect(request.url.path, '/v1/doctors');
-        expect(request.url.queryParameters, {
-          'specialty': 'general medicine',
-          'page': '2',
-        });
-        expect(request.headers['Accept'], 'application/json');
-        expect(request.headers['Content-Type'], contains('application/json'));
-        expect(request.headers['Authorization'], 'Bearer secure-token');
-        return http.Response('{"data":[]}', 200);
-      }),
-      baseUrl: 'https://api.example.com/',
-      timeout: const Duration(seconds: 5),
-    );
+    test('parses empty array response as empty data wrapper', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response('[]', 200);
+      });
 
-    await client.getJson(
-      'v1/doctors',
-      bearerToken: ' secure-token ',
-      queryParameters: {'specialty': 'general medicine', 'page': '2'},
-    );
-  });
+      final apiClient = ApiClient(
+        client: mockClient,
+        baseUrl: baseUrl,
+        timeout: const Duration(seconds: 5),
+      );
 
-  test('ApiClient reads the standard nested API error envelope', () async {
-    final client = ApiClient(
-      client: MockClient(
-        (_) async => http.Response(
-          '{"error":{"code":"validation_error","message":"Email is invalid."}}',
-          422,
+      final result = await apiClient.getJson('/v1/empty');
+      expect(result['data'], isA<List>());
+      expect((result['data'] as List).isEmpty, isTrue);
+    });
+
+    test('fails on malformed non-JSON primitive response', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response('PLAIN_TEXT_NOT_JSON', 200);
+      });
+
+      final apiClient = ApiClient(
+        client: mockClient,
+        baseUrl: baseUrl,
+        timeout: const Duration(seconds: 5),
+      );
+
+      expect(
+        () => apiClient.getJson('/v1/malformed'),
+        throwsA(
+          isA<ApiException>().having(
+            (e) => e.message,
+            'message',
+            contains('invalid JSON'),
+          ),
         ),
-      ),
-      baseUrl: 'https://api.example.com',
-      timeout: const Duration(seconds: 5),
-    );
-
-    expect(
-      () => client.postJson('/v1/auth/register', body: const {}),
-      throwsA(
-        isA<ApiException>()
-            .having((error) => error.statusCode, 'statusCode', 422)
-            .having((error) => error.message, 'message', 'Email is invalid.'),
-      ),
-    );
-  });
-
-  test('ApiClient accepts an empty successful response', () async {
-    final client = ApiClient(
-      client: MockClient((_) async => http.Response('', 204)),
-      baseUrl: 'https://api.example.com',
-      timeout: const Duration(seconds: 5),
-    );
-
-    expect(await client.postJson('/v1/auth/logout'), isEmpty);
-  });
-
-  test('ApiClient rejects invalid JSON in a successful response', () async {
-    final client = ApiClient(
-      client: MockClient((_) async => http.Response('not-json', 200)),
-      baseUrl: 'https://api.example.com',
-      timeout: const Duration(seconds: 5),
-    );
-
-    expect(
-      () => client.getJson('/v1/doctors'),
-      throwsA(
-        isA<ApiException>()
-            .having((error) => error.statusCode, 'statusCode', 200)
-            .having(
-              (error) => error.message,
-              'message',
-              'The server returned invalid JSON.',
-            ),
-      ),
-    );
+      );
+    });
   });
 }

@@ -13,6 +13,12 @@ abstract final class AppConfig {
     defaultValue: '',
   );
 
+  static const String supabaseUrl = String.fromEnvironment('SUPABASE_URL');
+
+  static const String supabasePublishableKey = String.fromEnvironment(
+    'SUPABASE_PUBLISHABLE_KEY',
+  );
+
   static const bool allowInsecureLocalApi = bool.fromEnvironment(
     'ALLOW_INSECURE_LOCAL_API',
     defaultValue: false,
@@ -25,6 +31,17 @@ abstract final class AppConfig {
 
   static Duration get requestTimeout =>
       Duration(seconds: requestTimeoutSeconds);
+
+  static void validateSupabaseConfiguration() {
+    if (useMockApi) return;
+
+    if (supabaseUrl.trim().isEmpty || supabasePublishableKey.trim().isEmpty) {
+      throw StateError(
+        'Remote auth mode requires SUPABASE_URL and '
+        'SUPABASE_PUBLISHABLE_KEY.',
+      );
+    }
+  }
 
   static void validate() {
     validateValues(
@@ -44,11 +61,6 @@ abstract final class AppConfig {
   }) {
     if (useMockApi) return;
 
-    validateRemoteApiUrl(
-      apiBaseUrl,
-      allowInsecureLocalApi: allowLocalHttp || allowInsecureLocalApi,
-    );
-
     if (requestTimeoutSeconds < 5 || requestTimeoutSeconds > 120) {
       throw StateError(
         'API_TIMEOUT_SECONDS must be between 5 and 120 seconds.',
@@ -65,6 +77,12 @@ abstract final class AppConfig {
     if (uri == null || !uri.hasAuthority) {
       throw StateError(
         'Remote API mode requires an absolute HTTPS API_BASE_URL.',
+      );
+    }
+
+    if (!uri.path.endsWith('/api') && !uri.path.contains('/api/')) {
+      throw StateError(
+        'API_BASE_URL must include the /api prefix (e.g. https://domain.com/api).',
       );
     }
 

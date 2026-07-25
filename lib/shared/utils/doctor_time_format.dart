@@ -1,5 +1,6 @@
 /// Formatting helpers shared across doctor appointment widgets. Kept in one
 /// place so time/price strings stay consistent between Home and Dashboard.
+library;
 
 /// Two-letter (or single-letter) initials for an avatar fallback.
 String initialsFor(String name) {

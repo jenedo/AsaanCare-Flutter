@@ -93,6 +93,13 @@ class AppointmentListController extends ChangeNotifier {
     return load(patientId: patientId, forceRefresh: true);
   }
 
+  void reset() {
+    _appointments = UnmodifiableListView<AppointmentRecord>(const []);
+    _status = AppointmentListStatus.initial;
+    _errorMessage = null;
+    notifyListeners();
+  }
+
   void _setState({
     required AppointmentListStatus status,
     required String? errorMessage,

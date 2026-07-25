@@ -3,9 +3,13 @@ abstract final class ApiEndpoints {
 
   static const String authLogin = '/v1/auth/login';
   static const String authRegister = '/v1/auth/register';
+  static const String authBootstrap = '/v1/auth/bootstrap';
   static const String authMe = '/v1/auth/me';
+  static const String usersMe = '/v1/users/me';
   static const String authLogout = '/v1/auth/logout';
   static const String authForgotPassword = '/v1/auth/forgot-password';
+  static const String doctorVerificationDocuments =
+      '/v1/doctors/verification/documents';
 
   static const String doctors = '/v1/doctors';
   static const String appointments = '/v1/appointments';
@@ -22,8 +26,10 @@ abstract final class ApiEndpoints {
     'authLogin': authLogin,
     'authRegister': authRegister,
     'authMe': authMe,
+    'usersMe': usersMe,
     'authLogout': authLogout,
     'authForgotPassword': authForgotPassword,
+    'doctorVerificationDocuments': doctorVerificationDocuments,
     'doctors': doctors,
     'appointments': appointments,
     'prescriptions': prescriptions,

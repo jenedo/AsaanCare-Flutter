@@ -5,13 +5,17 @@ import '../../domain/entities/appointment_record.dart';
 import '../../domain/entities/consultation_type.dart';
 import '../../domain/repositories/appointment_repository.dart';
 import '../datasources/appointment_mock_data_source.dart';
+import '../datasources/appointment_remote_data_source.dart';
 
 class AppointmentRepositoryImpl implements AppointmentRepository {
   const AppointmentRepositoryImpl({
-    required AppointmentMockDataSource mockDataSource,
-  }) : _mockDataSource = mockDataSource;
+    AppointmentMockDataSource? mockDataSource,
+    AppointmentRemoteDataSource? remoteDataSource,
+  }) : _mockDataSource = mockDataSource,
+       _remoteDataSource = remoteDataSource;
 
-  final AppointmentMockDataSource _mockDataSource;
+  final AppointmentMockDataSource? _mockDataSource;
+  final AppointmentRemoteDataSource? _remoteDataSource;
 
   @override
   Future<AppointmentRecord> bookAppointment({
@@ -23,7 +27,19 @@ class AppointmentRepositoryImpl implements AppointmentRepository {
     required String timeLabel,
     required int totalFee,
   }) {
-    return _mockDataSource.bookAppointment(
+    final remote = _remoteDataSource;
+    if (remote != null) {
+      return remote.bookAppointment(
+        patientId: patientId,
+        doctorId: doctorId,
+        consultationType: consultationType,
+        appointmentDate: appointmentDate,
+        dateLabel: dateLabel,
+        timeLabel: timeLabel,
+        totalFee: totalFee,
+      );
+    }
+    return _mockDataSource!.bookAppointment(
       patientId: patientId,
       doctorId: doctorId,
       consultationType: consultationType,
@@ -36,6 +52,10 @@ class AppointmentRepositoryImpl implements AppointmentRepository {
 
   @override
   Future<List<AppointmentRecord>> getAppointments({required String patientId}) {
-    return _mockDataSource.getAppointments(patientId: patientId);
+    final remote = _remoteDataSource;
+    if (remote != null) {
+      return remote.getAppointments(patientId: patientId);
+    }
+    return _mockDataSource!.getAppointments(patientId: patientId);
   }
 }

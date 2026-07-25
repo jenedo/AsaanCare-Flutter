@@ -117,8 +117,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                           ),
                                           const SizedBox(height: 28),
                                           TextField(
-                                            controller:
-                                                _emailOrPhoneController,
+                                            controller: _emailOrPhoneController,
                                             enabled: !isBusy,
                                             keyboardType:
                                                 TextInputType.emailAddress,
@@ -177,9 +176,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                           Align(
                                             alignment: Alignment.centerRight,
                                             child: TextButton(
-                                              onPressed: isBusy
-                                                  ? null
-                                                  : () {},
+                                              onPressed: isBusy ? null : () {},
                                               child: const Text(
                                                 'Forgot password?',
                                               ),
@@ -187,9 +184,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                           ),
                                           const SizedBox(height: 12),
                                           ElevatedButton(
-                                            onPressed: isBusy
-                                                ? null
-                                                : _login,
+                                            onPressed: isBusy ? null : _login,
                                             child: isLoading
                                                 ? const SizedBox.square(
                                                     dimension: 22,

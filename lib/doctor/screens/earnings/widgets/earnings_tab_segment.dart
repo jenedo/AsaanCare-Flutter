@@ -76,7 +76,9 @@ class _Segment extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? DoctorColors.primaryDark : DoctorColors.textPrimary;
+    final color = selected
+        ? DoctorColors.primaryDark
+        : DoctorColors.textPrimary;
     return Semantics(
       button: true,
       selected: selected,

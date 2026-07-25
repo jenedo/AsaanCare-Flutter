@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/routes/app_routes.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../domain/entities/doctor_registration_payload.dart';
 import '../controllers/auth_controller.dart';
 import '../widgets/auth_invisible_scroll_behavior.dart';
 import '../widgets/auth_verification_overlay.dart';
@@ -169,13 +170,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  // STEP 1 CALLBACK: patient registration only needs the Step 1 fields, so we
-  // register the patient directly here and route straight to the patient home.
-  // The doctor Step 2 flow is preserved for reuse but intentionally skipped.
+  // STEP 1 CALLBACK: patient flow registers immediately; doctor flow advances to
+  // Step 2 when onRegisterDoctor is wired by DoctorApp.
   Future<bool> handleNextStep() async {
     if (_isLoading || !_validateForm()) return false;
 
     FocusScope.of(context).unfocus();
+
+    if (widget.onRegisterDoctor != null) {
+      setState(() {
+        _stepOneData = _RegistrationStepOneData(
+          fullName: _fullNameController.text.trim(),
+          email: _emailController.text.trim(),
+          phone: _phoneController.text.trim(),
+          password: _passwordController.text,
+          gender: _gender!,
+        );
+        _currentStep = 2;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToTop());
+      return true;
+    }
 
     final success = await widget.authController.registerPatient(
       fullName: _fullNameController.text.trim(),
@@ -573,9 +588,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
       await Future<void>.delayed(const Duration(milliseconds: 1900));
       if (!mounted) return true;
 
-      Navigator.of(
-        context,
-      ).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
+      if (widget.onRegisterDoctor != null) {
+        Navigator.of(context).pop(true);
+      } else {
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
+      }
       return true;
     } catch (error) {
       if (mounted) {
@@ -1834,52 +1853,6 @@ class _TermsText extends StatelessWidget {
 
 typedef DoctorRegistrationSubmitter =
     Future<bool> Function(DoctorRegistrationPayload payload);
-
-class DoctorRegistrationPayload {
-  const DoctorRegistrationPayload({
-    required this.fullName,
-    required this.email,
-    required this.phone,
-    required this.password,
-    required this.gender,
-    required this.specialty,
-    required this.pmdcOrLicenseNumber,
-    required this.yearsOfExperience,
-    required this.hospitalOrClinicName,
-    required this.consultationFeePkr,
-    required this.medicalLicense,
-    required this.idFront,
-    required this.idBack,
-  });
-
-  final String fullName;
-  final String email;
-  final String phone;
-  final String password;
-  final String gender;
-  final String specialty;
-  final String pmdcOrLicenseNumber;
-  final int yearsOfExperience;
-  final String hospitalOrClinicName;
-  final int consultationFeePkr;
-  final RegistrationUpload medicalLicense;
-  final RegistrationUpload idFront;
-  final RegistrationUpload idBack;
-}
-
-class RegistrationUpload {
-  const RegistrationUpload({
-    required this.name,
-    required this.bytes,
-    required this.extension,
-  });
-
-  final String name;
-  final Uint8List bytes;
-  final String extension;
-
-  bool get isImage => extension != 'pdf';
-}
 
 enum _UploadSource { camera, gallery, files }
 

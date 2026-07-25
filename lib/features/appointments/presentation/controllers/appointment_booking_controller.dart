@@ -27,8 +27,6 @@ class AppointmentBookingController extends ChangeNotifier {
           .map(_appointmentSlotFor)
           .toList(growable: false);
 
-  static const String defaultPatientId = BookAppointment.defaultMockPatientId;
-
   final BookAppointment _bookAppointment;
 
   List<DateTime>? _bookingDates = const [];
@@ -122,7 +120,7 @@ class AppointmentBookingController extends ChangeNotifier {
   }
 
   Future<bool> book({
-    String patientId = defaultPatientId,
+    required String patientId,
     required String doctorId,
     required int totalFee,
   }) async {

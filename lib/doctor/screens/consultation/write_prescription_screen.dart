@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/di/service_locator.dart';
+import '../../features/prescription_writer/data/datasources/doctor_prescription_draft_mock_data_source.dart';
+import '../../features/prescription_writer/data/repositories/doctor_prescription_draft_repository_impl.dart';
+import '../../features/prescription_writer/domain/entities/doctor_written_prescription.dart';
+import '../../features/prescription_writer/presentation/controllers/doctor_prescription_controller.dart';
+
 class WritePrescriptionScreen extends StatefulWidget {
   const WritePrescriptionScreen({
     super.key,
@@ -7,12 +13,14 @@ class WritePrescriptionScreen extends StatefulWidget {
     required this.patientAge,
     required this.patientGender,
     required this.appointmentId,
+    this.controller,
   });
 
   final String patientName;
   final int patientAge;
   final String patientGender;
   final String appointmentId;
+  final DoctorPrescriptionController? controller;
 
   @override
   State<WritePrescriptionScreen> createState() =>
@@ -21,52 +29,58 @@ class WritePrescriptionScreen extends StatefulWidget {
 
 class _WritePrescriptionScreenState extends State<WritePrescriptionScreen> {
   static const _teal = Color(0xFF078D83);
-  final _diagnosisController = TextEditingController(
-    text: 'Upper Respiratory Infection',
-  );
-  final _complaintController = TextEditingController(
-    text: 'Fever, sore throat, cough for 3 days',
-  );
-  final _notesController = TextEditingController(
-    text:
-        'Advise rest, hydration, warm fluids, and complete antibiotic course. Return earlier if symptoms worsen.',
-  );
-  final Set<String> _symptoms = {'Fever', 'Cough', 'Sore Throat', 'Body Aches'};
-  final Set<String> _labTests = {'CBC (Complete Blood Count)', 'ECG'};
-  final List<_PrescriptionMedicine> _medicines = [
-    const _PrescriptionMedicine(
-      name: 'Amoxicillin',
-      dosage: '500mg',
-      frequency: 'After meal',
-      duration: '7 days',
-      instructions: 'Take with water',
-    ),
-    const _PrescriptionMedicine(
-      name: 'Paracetamol',
-      dosage: '500mg',
-      frequency: 'As needed',
-      duration: '5 days',
-      instructions: 'For fever and pain',
-    ),
-  ];
-  bool _followUp = true;
-  String _followUpAfter = '2 weeks';
+
+  late final DoctorPrescriptionController _controller =
+      widget.controller ??
+      (sl.isRegistered<DoctorPrescriptionController>()
+          ? sl<DoctorPrescriptionController>()
+          : DoctorPrescriptionController(
+              repository: DoctorPrescriptionDraftRepositoryImpl(
+                dataSource: DoctorPrescriptionDraftMockDataSource(),
+              ),
+            ));
+
+  final _diagnosisController = TextEditingController();
+  final _complaintController = TextEditingController();
+  final _notesController = TextEditingController();
+  bool _didSync = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.load(appointmentId: widget.appointmentId).then((_) {
+      if (mounted) {
+        setState(_syncFields);
+      }
+    });
+  }
 
   @override
   void dispose() {
+    if (widget.controller == null) {
+      _controller.dispose();
+    }
     _diagnosisController.dispose();
     _complaintController.dispose();
     _notesController.dispose();
     super.dispose();
   }
 
-  Future<void> _editMedicine({_PrescriptionMedicine? medicine}) async {
+  void _syncFields() {
+    final state = _controller.state;
+    _diagnosisController.text = state.diagnosis;
+    _complaintController.text = state.chiefComplaint;
+    _notesController.text = state.doctorNotes;
+    _didSync = true;
+  }
+
+  Future<void> _editMedicine({DoctorWrittenPrescription? medicine}) async {
     final name = TextEditingController(text: medicine?.name);
     final dosage = TextEditingController(text: medicine?.dosage);
     final frequency = TextEditingController(text: medicine?.frequency);
     final duration = TextEditingController(text: medicine?.duration);
     final instructions = TextEditingController(text: medicine?.instructions);
-    final result = await showModalBottomSheet<_PrescriptionMedicine>(
+    final result = await showModalBottomSheet<DoctorWrittenPrescription>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
@@ -112,7 +126,7 @@ class _WritePrescriptionScreenState extends State<WritePrescriptionScreen> {
                     return;
                   }
                   Navigator.of(sheetContext).pop(
-                    _PrescriptionMedicine(
+                    DoctorWrittenPrescription(
                       name: name.text.trim(),
                       dosage: dosage.text.trim(),
                       frequency: frequency.text.trim(),
@@ -134,16 +148,15 @@ class _WritePrescriptionScreenState extends State<WritePrescriptionScreen> {
     duration.dispose();
     instructions.dispose();
     if (result == null || !mounted) return;
-    setState(() {
-      if (medicine == null) {
-        _medicines.add(result);
-      } else {
-        _medicines[_medicines.indexOf(medicine)] = result;
-      }
-    });
+    if (medicine == null) {
+      await _controller.addMedicine(result);
+    } else {
+      await _controller.updateMedicine(medicine, result);
+    }
   }
 
   void _preview() {
+    final state = _controller.state;
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -170,7 +183,7 @@ class _WritePrescriptionScreenState extends State<WritePrescriptionScreen> {
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
             ),
-            Text(_diagnosisController.text),
+            Text(state.diagnosis),
             const SizedBox(height: 16),
             Text(
               'Medicines',
@@ -178,7 +191,7 @@ class _WritePrescriptionScreenState extends State<WritePrescriptionScreen> {
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
             ),
-            for (final medicine in _medicines)
+            for (final medicine in state.medicines)
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.medication_outlined, color: _teal),
@@ -187,7 +200,7 @@ class _WritePrescriptionScreenState extends State<WritePrescriptionScreen> {
                   '${medicine.frequency} · ${medicine.duration}\n${medicine.instructions}',
                 ),
               ),
-            if (_labTests.isNotEmpty) ...[
+            if (state.labTests.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
                 'Lab tests',
@@ -195,7 +208,7 @@ class _WritePrescriptionScreenState extends State<WritePrescriptionScreen> {
                   context,
                 ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
               ),
-              Text(_labTests.join(', ')),
+              Text(state.labTests.join(', ')),
             ],
             const SizedBox(height: 16),
             Text(
@@ -204,7 +217,7 @@ class _WritePrescriptionScreenState extends State<WritePrescriptionScreen> {
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
             ),
-            Text(_notesController.text),
+            Text(state.doctorNotes),
           ],
         ),
       ),
@@ -212,7 +225,12 @@ class _WritePrescriptionScreenState extends State<WritePrescriptionScreen> {
   }
 
   Future<void> _send() async {
-    if (_diagnosisController.text.trim().isEmpty || _medicines.isEmpty) {
+    await _controller.updateDiagnosis(_diagnosisController.text);
+    await _controller.updateChiefComplaint(_complaintController.text);
+    await _controller.updateDoctorNotes(_notesController.text);
+    if (!mounted) return;
+
+    if (!_controller.canSend) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Add a diagnosis and at least one medicine.'),
@@ -240,11 +258,18 @@ class _WritePrescriptionScreenState extends State<WritePrescriptionScreen> {
         ],
       ),
     );
-    if (confirmed == true && mounted) Navigator.of(context).pop(true);
+    if (!mounted) return;
+
+    if (confirmed == true) {
+      Navigator.of(context).pop(true);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_didSync) {
+      _syncFields();
+    }
     const symptoms = [
       'Fever',
       'Cough',
@@ -267,163 +292,176 @@ class _WritePrescriptionScreenState extends State<WritePrescriptionScreen> {
       'Chest X-Ray',
       'ECG',
     ];
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        leading: IconButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          icon: const Icon(Icons.chevron_left_rounded),
-          iconSize: 32,
-        ),
-        title: const Text(
-          'Write Prescription',
-          style: TextStyle(fontWeight: FontWeight.w900),
-        ),
-        centerTitle: true,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 10),
-            child: OutlinedButton.icon(
-              onPressed: _preview,
-              icon: const Icon(Icons.visibility_outlined),
-              label: const Text('Preview'),
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        final state = _controller.state;
+        return Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          appBar: AppBar(
+            leading: IconButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              icon: const Icon(Icons.chevron_left_rounded),
+              iconSize: 32,
             ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        minimum: const EdgeInsets.fromLTRB(16, 8, 16, 10),
-        child: Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Prescription draft saved.')),
+            title: const Text(
+              'Write Prescription',
+              style: TextStyle(fontWeight: FontWeight.w900),
+            ),
+            centerTitle: true,
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 10),
+                child: OutlinedButton.icon(
+                  onPressed: _preview,
+                  icon: const Icon(Icons.visibility_outlined),
+                  label: const Text('Preview'),
                 ),
-                icon: const Icon(Icons.description_outlined),
-                label: const Text('Save Draft'),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: FilledButton.icon(
-                onPressed: _send,
-                icon: const Icon(Icons.send_rounded),
-                label: const Text('Send Prescription'),
-              ),
-            ),
-          ],
-        ),
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 650),
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-            children: [
-              _PatientPrescriptionHeader(widget: widget),
-              const SizedBox(height: 18),
-              const _SectionTitle('1. Diagnosis & Chief Complaint'),
-              const SizedBox(height: 10),
-              _LabeledField(
-                label: 'Primary Diagnosis',
-                controller: _diagnosisController,
-              ),
-              const SizedBox(height: 10),
-              _LabeledField(
-                label: 'Chief Complaint',
-                controller: _complaintController,
-                maxLines: 2,
-              ),
-              const SizedBox(height: 18),
-              const _SectionTitle('2. Common Symptoms'),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 7,
-                children: [
-                  for (final symptom in symptoms)
-                    FilterChip(
-                      selected: _symptoms.contains(symptom),
-                      showCheckmark: true,
-                      label: Text(symptom),
-                      onSelected: (selected) => setState(
-                        () => selected
-                            ? _symptoms.add(symptom)
-                            : _symptoms.remove(symptom),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              Row(
-                children: [
-                  const Expanded(child: _SectionTitle('3. Medicines')),
-                  OutlinedButton.icon(
-                    onPressed: _editMedicine,
-                    icon: const Icon(Icons.add_circle_outline_rounded),
-                    label: const Text('Add Medicine'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              for (var index = 0; index < _medicines.length; index++)
-                _MedicineCard(
-                  index: index + 1,
-                  medicine: _medicines[index],
-                  onEdit: () => _editMedicine(medicine: _medicines[index]),
-                  onDelete: () => setState(() => _medicines.removeAt(index)),
-                ),
-              const SizedBox(height: 12),
-              const _SectionTitle('4. Lab Tests'),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 7,
-                children: [
-                  for (final test in tests)
-                    FilterChip(
-                      selected: _labTests.contains(test),
-                      label: Text(test),
-                      onSelected: (selected) => setState(
-                        () => selected
-                            ? _labTests.add(test)
-                            : _labTests.remove(test),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final followUp = _FollowUpCard(
-                    enabled: _followUp,
-                    selected: _followUpAfter,
-                    onEnabled: (value) => setState(() => _followUp = value),
-                    onSelected: (value) =>
-                        setState(() => _followUpAfter = value),
-                  );
-                  final notes = _DoctorNotes(controller: _notesController);
-                  if (constraints.maxWidth < 520) {
-                    return Column(
-                      children: [followUp, const SizedBox(height: 14), notes],
-                    );
-                  }
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(child: followUp),
-                      const SizedBox(width: 14),
-                      Expanded(child: notes),
-                    ],
-                  );
-                },
               ),
             ],
           ),
-        ),
-      ),
+          bottomNavigationBar: SafeArea(
+            top: false,
+            minimum: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      await _controller.saveDraft();
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Prescription draft saved.'),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.description_outlined),
+                    label: const Text('Save Draft'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: _send,
+                    icon: const Icon(Icons.send_rounded),
+                    label: const Text('Send Prescription'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          body: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 650),
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                children: [
+                  _PatientPrescriptionHeader(widget: widget),
+                  const SizedBox(height: 18),
+                  const _SectionTitle('1. Diagnosis & Chief Complaint'),
+                  const SizedBox(height: 10),
+                  _LabeledField(
+                    label: 'Primary Diagnosis',
+                    controller: _diagnosisController,
+                    onChanged: _controller.updateDiagnosis,
+                  ),
+                  const SizedBox(height: 10),
+                  _LabeledField(
+                    label: 'Chief Complaint',
+                    controller: _complaintController,
+                    maxLines: 2,
+                    onChanged: _controller.updateChiefComplaint,
+                  ),
+                  const SizedBox(height: 18),
+                  const _SectionTitle('2. Common Symptoms'),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 7,
+                    children: [
+                      for (final symptom in symptoms)
+                        FilterChip(
+                          selected: state.symptoms.contains(symptom),
+                          showCheckmark: true,
+                          label: Text(symptom),
+                          onSelected: (_) => _controller.toggleSymptom(symptom),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      const Expanded(child: _SectionTitle('3. Medicines')),
+                      OutlinedButton.icon(
+                        onPressed: _editMedicine,
+                        icon: const Icon(Icons.add_circle_outline_rounded),
+                        label: const Text('Add Medicine'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  for (var index = 0; index < state.medicines.length; index++)
+                    _MedicineCard(
+                      index: index + 1,
+                      medicine: state.medicines[index],
+                      onEdit: () =>
+                          _editMedicine(medicine: state.medicines[index]),
+                      onDelete: () => _controller.removeMedicineAt(index),
+                    ),
+                  const SizedBox(height: 12),
+                  const _SectionTitle('4. Lab Tests'),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 7,
+                    children: [
+                      for (final test in tests)
+                        FilterChip(
+                          selected: state.labTests.contains(test),
+                          label: Text(test),
+                          onSelected: (_) => _controller.toggleLabTest(test),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final followUp = _FollowUpCard(
+                        enabled: state.followUp,
+                        selected: state.followUpAfter,
+                        onEnabled: _controller.setFollowUp,
+                        onSelected: _controller.setFollowUpAfter,
+                      );
+                      final notes = _DoctorNotes(
+                        controller: _notesController,
+                        onChanged: _controller.updateDoctorNotes,
+                      );
+                      if (constraints.maxWidth < 520) {
+                        return Column(
+                          children: [
+                            followUp,
+                            const SizedBox(height: 14),
+                            notes,
+                          ],
+                        );
+                      }
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: followUp),
+                          const SizedBox(width: 14),
+                          Expanded(child: notes),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -431,6 +469,7 @@ class _WritePrescriptionScreenState extends State<WritePrescriptionScreen> {
 class _PatientPrescriptionHeader extends StatelessWidget {
   const _PatientPrescriptionHeader({required this.widget});
   final WritePrescriptionScreen widget;
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -497,6 +536,7 @@ class _PatientPrescriptionHeader extends StatelessWidget {
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle(this.text);
   final String text;
+
   @override
   Widget build(BuildContext context) => Text(
     text,
@@ -508,11 +548,15 @@ class _LabeledField extends StatelessWidget {
   const _LabeledField({
     required this.label,
     required this.controller,
+    this.onChanged,
     this.maxLines = 1,
   });
+
   final String label;
   final TextEditingController controller;
+  final ValueChanged<String>? onChanged;
   final int maxLines;
+
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -521,6 +565,7 @@ class _LabeledField extends StatelessWidget {
       const SizedBox(height: 6),
       TextField(
         controller: controller,
+        onChanged: onChanged,
         maxLines: maxLines,
         decoration: const InputDecoration(border: OutlineInputBorder()),
       ),
@@ -535,10 +580,12 @@ class _MedicineCard extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
   });
+
   final int index;
-  final _PrescriptionMedicine medicine;
+  final DoctorWrittenPrescription medicine;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+
   @override
   Widget build(BuildContext context) => Card(
     margin: const EdgeInsets.only(bottom: 9),
@@ -609,10 +656,12 @@ class _FollowUpCard extends StatelessWidget {
     required this.onEnabled,
     required this.onSelected,
   });
+
   final bool enabled;
   final String selected;
   final ValueChanged<bool> onEnabled;
   final ValueChanged<String> onSelected;
+
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -658,8 +707,11 @@ class _FollowUpCard extends StatelessWidget {
 }
 
 class _DoctorNotes extends StatelessWidget {
-  const _DoctorNotes({required this.controller});
+  const _DoctorNotes({required this.controller, this.onChanged});
+
   final TextEditingController controller;
+  final ValueChanged<String>? onChanged;
+
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -668,6 +720,7 @@ class _DoctorNotes extends StatelessWidget {
       const SizedBox(height: 8),
       TextField(
         controller: controller,
+        onChanged: onChanged,
         minLines: 5,
         maxLines: 7,
         decoration: const InputDecoration(
@@ -682,8 +735,10 @@ class _DoctorNotes extends StatelessWidget {
 
 class _ModalField extends StatelessWidget {
   const _ModalField({required this.controller, required this.label});
+
   final TextEditingController controller;
   final String label;
+
   @override
   Widget build(BuildContext context) => TextField(
     controller: controller,
@@ -692,21 +747,6 @@ class _ModalField extends StatelessWidget {
       border: const OutlineInputBorder(),
     ),
   );
-}
-
-class _PrescriptionMedicine {
-  const _PrescriptionMedicine({
-    required this.name,
-    required this.dosage,
-    required this.frequency,
-    required this.duration,
-    required this.instructions,
-  });
-  final String name;
-  final String dosage;
-  final String frequency;
-  final String duration;
-  final String instructions;
 }
 
 String _todayLabel() {

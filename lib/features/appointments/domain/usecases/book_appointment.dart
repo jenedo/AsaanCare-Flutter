@@ -5,12 +5,10 @@ import '../repositories/appointment_repository.dart';
 class BookAppointment {
   const BookAppointment(this._repository);
 
-  static const String defaultMockPatientId = 'mock_patient_001';
-
   final AppointmentRepository _repository;
 
   Future<AppointmentRecord> call({
-    String patientId = defaultMockPatientId,
+    required String patientId,
     required String doctorId,
     required ConsultationType consultationType,
     required DateTime appointmentDate,

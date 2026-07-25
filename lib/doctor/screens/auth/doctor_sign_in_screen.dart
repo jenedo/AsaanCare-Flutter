@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -610,6 +612,8 @@ class SwipeSignInControlState extends State<SwipeSignInControl>
 
   late final AnimationController _animationController;
   final FocusNode _handleFocusNode = FocusNode(debugLabel: 'Swipe to sign in');
+  Timer? _minimumLoadingTimer;
+  Completer<void>? _minimumLoadingCompleter;
 
   SwipeSignInState _swipeState = SwipeSignInState.idle;
   double _dragOffset = 0;
@@ -647,6 +651,14 @@ class SwipeSignInControlState extends State<SwipeSignInControl>
   @override
   void dispose() {
     _operationToken++;
+    _minimumLoadingTimer?.cancel();
+    final minimumLoadingCompleter = _minimumLoadingCompleter;
+    if (minimumLoadingCompleter != null &&
+        !minimumLoadingCompleter.isCompleted) {
+      minimumLoadingCompleter.complete();
+    }
+    _minimumLoadingTimer = null;
+    _minimumLoadingCompleter = null;
     _animationController.dispose();
     _handleFocusNode.dispose();
     super.dispose();
@@ -723,14 +735,24 @@ class SwipeSignInControlState extends State<SwipeSignInControl>
     });
 
     var authenticated = false;
+    final minimumLoadingDelay = Completer<void>();
+    _minimumLoadingCompleter = minimumLoadingDelay;
+    _minimumLoadingTimer = Timer(
+      const Duration(milliseconds: 1400),
+      minimumLoadingDelay.complete,
+    );
     try {
       final results = await Future.wait<dynamic>([
         widget.onSwipeComplete(),
-        Future<void>.delayed(const Duration(milliseconds: 1400)),
+        minimumLoadingDelay.future,
       ]);
       authenticated = results.first == true;
     } catch (_) {
       authenticated = false;
+    } finally {
+      _minimumLoadingTimer?.cancel();
+      _minimumLoadingTimer = null;
+      _minimumLoadingCompleter = null;
     }
 
     if (!mounted || token != _operationToken) return;

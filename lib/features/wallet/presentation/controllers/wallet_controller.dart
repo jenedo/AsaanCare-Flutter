@@ -58,6 +58,17 @@ class WalletController extends ChangeNotifier {
 
   bool get isInitial => _status == WalletStatus.initial;
   bool get isLoading => _status == WalletStatus.loading;
+
+  void reset() {
+    _snapshot = null;
+    _status = WalletStatus.initial;
+    _errorMessage = null;
+    _successMessage = null;
+    _isAddingMoney = false;
+    _isUpdatingPaymentMethods = false;
+    if (!_isDisposed) notifyListeners();
+  }
+
   bool get isLoaded => _status == WalletStatus.loaded;
   bool get hasError => _status == WalletStatus.error;
   bool get isBalanceVisible => _isBalanceVisible;

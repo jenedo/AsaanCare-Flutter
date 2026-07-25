@@ -22,7 +22,6 @@ class PrescriptionController extends ChangeNotifier {
        _uploadPrescription = uploadPrescription,
        _deletePrescription = deletePrescription;
 
-  static const String mockPatientId = 'mock_patient_001';
   static const int maxFileSizeBytes = 5 * 1024 * 1024;
 
   final GetPrescriptions _getPrescriptions;
@@ -51,7 +50,17 @@ class PrescriptionController extends ChangeNotifier {
   bool get isEmpty => _status == PrescriptionControllerStatus.empty;
   bool get hasError => _status == PrescriptionControllerStatus.error;
 
-  Future<void> loadPrescriptions({String patientId = mockPatientId}) async {
+  void reset() {
+    _records = UnmodifiableListView<PrescriptionRecord>(const []);
+    _status = PrescriptionControllerStatus.initial;
+    _isUploading = false;
+    _isDeleting = false;
+    _isDownloading = false;
+    _errorMessage = null;
+    if (!_isDisposed) notifyListeners();
+  }
+
+  Future<void> loadPrescriptions({required String patientId}) async {
     final trimmedPatientId = patientId.trim();
 
     if (trimmedPatientId.isEmpty) {
@@ -86,7 +95,7 @@ class PrescriptionController extends ChangeNotifier {
     }
   }
 
-  Future<bool> pickAndUploadFile({String patientId = mockPatientId}) async {
+  Future<bool> pickAndUploadFile({required String patientId}) async {
     if (_isUploading) return false;
 
     final trimmedPatientId = patientId.trim();
@@ -204,7 +213,7 @@ class PrescriptionController extends ChangeNotifier {
   }
 
   Future<bool> deleteRecord({
-    String patientId = mockPatientId,
+    required String patientId,
     required String prescriptionId,
   }) async {
     if (_isDeleting) return false;

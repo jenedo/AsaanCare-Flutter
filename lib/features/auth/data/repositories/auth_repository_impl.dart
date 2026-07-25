@@ -2,6 +2,7 @@
 // ignore_for_file: prefer_initializing_formals
 import '../../domain/entities/auth_user.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../../domain/entities/doctor_registration_payload.dart';
 import '../datasources/auth_data_source.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
@@ -34,6 +35,11 @@ class AuthRepositoryImpl implements AuthRepository {
       emailOrPhone: emailOrPhone,
       password: password,
     );
+  }
+
+  @override
+  Future<AuthUser> registerDoctor(DoctorRegistrationPayload payload) {
+    return _dataSource.registerDoctor(payload);
   }
 
   @override

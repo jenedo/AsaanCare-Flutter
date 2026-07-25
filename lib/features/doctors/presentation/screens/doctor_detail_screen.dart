@@ -11,7 +11,7 @@ import '../widgets/doctor_detail_widgets.dart';
 class DoctorDetailScreen extends StatefulWidget {
   const DoctorDetailScreen({
     super.key,
-    this.patientId = AppointmentBookingController.defaultPatientId,
+    required this.patientId,
     required this.doctorId,
     required this.doctorDetailController,
     required this.bookingController,
