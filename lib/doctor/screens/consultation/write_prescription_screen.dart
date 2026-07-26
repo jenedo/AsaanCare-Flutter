@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/di/service_locator.dart';
 import '../../features/prescription_writer/data/datasources/doctor_prescription_draft_mock_data_source.dart';
 import '../../features/prescription_writer/data/repositories/doctor_prescription_draft_repository_impl.dart';
@@ -36,7 +37,11 @@ class _WritePrescriptionScreenState extends State<WritePrescriptionScreen> {
           ? sl<DoctorPrescriptionController>()
           : DoctorPrescriptionController(
               repository: DoctorPrescriptionDraftRepositoryImpl(
-                dataSource: DoctorPrescriptionDraftMockDataSource(),
+                dataSource: AppConfig.useMockApi
+                    ? DoctorPrescriptionDraftMockDataSource()
+                    : throw UnimplementedError(
+                        'Remote datasource not yet available — enable mock mode for development',
+                      ),
               ),
             ));
 

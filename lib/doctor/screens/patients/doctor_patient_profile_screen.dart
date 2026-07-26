@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/di/service_locator.dart';
 import '../../features/patient_notes/data/datasources/doctor_patient_notes_mock_data_source.dart';
 import '../../features/patient_notes/data/repositories/doctor_patient_notes_repository_impl.dart';
@@ -39,7 +40,11 @@ class _DoctorPatientProfileScreenState
           ? sl<DoctorPatientNotesController>()
           : DoctorPatientNotesController(
               repository: DoctorPatientNotesRepositoryImpl(
-                dataSource: DoctorPatientNotesMockDataSource(),
+                dataSource: AppConfig.useMockApi
+                    ? DoctorPatientNotesMockDataSource()
+                    : throw UnimplementedError(
+                        'Remote datasource not yet available — enable mock mode for development',
+                      ),
               ),
             ));
 

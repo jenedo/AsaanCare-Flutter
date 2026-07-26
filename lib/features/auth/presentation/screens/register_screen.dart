@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -25,10 +26,10 @@ class RegisterScreen extends StatefulWidget {
   final DoctorRegistrationSubmitter? onRegisterDoctor;
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  State<RegisterScreen> createState() => RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -68,6 +69,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   bool get _isLoading =>
       widget.authController.isLoading || _isSubmittingProfessional;
+
+  @visibleForTesting
+  void setStepTwoDataForTesting({
+    String? specialty,
+    String? pmdc,
+    String? experience,
+    String? clinic,
+    String? fee,
+    RegistrationUpload? medicalLicense,
+    RegistrationUpload? idFront,
+    RegistrationUpload? idBack,
+    bool agreed = true,
+  }) {
+    setState(() {
+      if (specialty != null) _specialty = specialty;
+      if (pmdc != null) _pmdcController.text = pmdc;
+      if (experience != null) _experienceController.text = experience;
+      if (clinic != null) _clinicController.text = clinic;
+      if (fee != null) _feeController.text = fee;
+      if (medicalLicense != null) _medicalLicense = medicalLicense;
+      if (idFront != null) _idFront = idFront;
+      if (idBack != null) _idBack = idBack;
+      _agreedToVerificationTerms = agreed;
+    });
+  }
 
   @override
   void dispose() {

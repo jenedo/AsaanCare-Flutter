@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/di/service_locator.dart';
 import '../../../features/auth/presentation/controllers/auth_controller.dart';
 import '../../features/profile/data/datasources/doctor_profile_mock_data_source.dart';
@@ -31,7 +32,11 @@ class _DoctorProfileScreenState extends State<DoctorProfileScreen> {
           ? sl<DoctorProfileController>()
           : DoctorProfileController(
               repository: DoctorProfileRepositoryImpl(
-                dataSource: DoctorProfileMockDataSource(),
+                dataSource: AppConfig.useMockApi
+                    ? DoctorProfileMockDataSource()
+                    : throw UnimplementedError(
+                        'Remote datasource not yet available — enable mock mode for development',
+                      ),
               ),
             ));
 
