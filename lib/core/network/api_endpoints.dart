@@ -15,7 +15,11 @@ abstract final class ApiEndpoints {
   static const String appointments = '/v1/appointments';
   static const String prescriptions = '/v1/prescriptions';
   static const String medicalRecords = '/v1/medical-records';
-  static const String pharmacyMedicines = '/v1/pharmacy/medicines';
+  static const String pharmacyCategories = '/v1/pharmacy/categories';
+  static const String pharmacyProducts = '/v1/pharmacy/products';
+  static const String pharmacyCart = '/v1/pharmacy/cart';
+  static const String pharmacyCartItems = '/v1/pharmacy/cart/items';
+  static const String pharmacyAddresses = '/v1/pharmacy/addresses';
   static const String pharmacyOrders = '/v1/pharmacy/orders';
   static const String notifications = '/v1/notifications';
   static const String patientProfile = '/v1/patients/me';
@@ -34,7 +38,11 @@ abstract final class ApiEndpoints {
     'appointments': appointments,
     'prescriptions': prescriptions,
     'medicalRecords': medicalRecords,
-    'pharmacyMedicines': pharmacyMedicines,
+    'pharmacyCategories': pharmacyCategories,
+    'pharmacyProducts': pharmacyProducts,
+    'pharmacyCart': pharmacyCart,
+    'pharmacyCartItems': pharmacyCartItems,
+    'pharmacyAddresses': pharmacyAddresses,
     'pharmacyOrders': pharmacyOrders,
     'notifications': notifications,
     'patientProfile': patientProfile,

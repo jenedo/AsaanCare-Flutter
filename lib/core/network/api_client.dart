@@ -53,6 +53,23 @@ class ApiClient {
     );
   }
 
+  Future<JsonObject> patchJson(
+    String path, {
+    String? bearerToken,
+    JsonObject? body,
+  }) {
+    return _send(
+      method: 'PATCH',
+      path: path,
+      bearerToken: bearerToken,
+      body: body,
+    );
+  }
+
+  Future<JsonObject> deleteJson(String path, {String? bearerToken}) {
+    return _send(method: 'DELETE', path: path, bearerToken: bearerToken);
+  }
+
   Future<JsonObject> postMultipart(
     String path, {
     String? bearerToken,

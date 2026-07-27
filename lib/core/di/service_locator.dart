@@ -55,6 +55,7 @@ import '../../features/doctors/domain/usecases/get_doctors.dart';
 import '../../features/doctors/presentation/controllers/doctor_detail_controller.dart';
 import '../../features/doctors/presentation/controllers/find_doctors_controller.dart';
 import '../../features/pharmacy/data/datasources/pharmacy_mock_data_source.dart';
+import '../../features/pharmacy/data/datasources/pharmacy_remote_data_source.dart';
 import '../../features/pharmacy/data/repositories/pharmacy_repository_impl.dart';
 import '../../features/pharmacy/domain/repositories/pharmacy_repository.dart';
 import '../../features/pharmacy/domain/usecases/get_popular_medicines.dart';
@@ -289,8 +290,16 @@ Future<void> setupServiceLocator({bool? isMockApi}) async {
   sl.registerLazySingleton<PharmacyMockDataSource>(
     () => PharmacyMockDataSource(),
   );
+  sl.registerLazySingleton<PharmacyRemoteDataSource>(
+    () => PharmacyRemoteDataSourceImpl(sl<ApiClient>()),
+  );
   sl.registerLazySingleton<PharmacyRepository>(
-    () => PharmacyRepositoryImpl(mockDataSource: sl<PharmacyMockDataSource>()),
+    () => AppConfig.useMockApi
+        ? PharmacyRepositoryImpl(mockDataSource: sl<PharmacyMockDataSource>())
+        : PharmacyRepositoryImpl(
+            remoteDataSource: sl<PharmacyRemoteDataSource>(),
+            mockDataSource: sl<PharmacyMockDataSource>(),
+          ),
   );
   sl.registerLazySingleton<GetPopularMedicines>(
     () => GetPopularMedicines(sl<PharmacyRepository>()),
