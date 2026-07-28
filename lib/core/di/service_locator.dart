@@ -9,6 +9,7 @@ import '../../doctor/features/dashboard/domain/repositories/doctor_dashboard_rep
 import '../../doctor/features/dashboard/domain/usecases/doctor_dashboard_usecases.dart';
 import '../../doctor/features/dashboard/presentation/controllers/doctor_dashboard_controller.dart';
 import '../../doctor/features/finance/data/datasources/doctor_finance_mock_data_source.dart';
+import '../../doctor/features/finance/data/datasources/doctor_finance_remote_data_source.dart';
 import '../../doctor/features/finance/data/repositories/doctor_finance_repository_impl.dart';
 import '../../doctor/features/finance/domain/repositories/doctor_finance_repository.dart';
 import '../../doctor/features/finance/domain/usecases/get_doctor_finance.dart';
@@ -22,6 +23,7 @@ import '../../doctor/features/prescription_writer/data/repositories/doctor_presc
 import '../../doctor/features/prescription_writer/domain/repositories/doctor_prescription_draft_repository.dart';
 import '../../doctor/features/prescription_writer/presentation/controllers/doctor_prescription_controller.dart';
 import '../../doctor/features/profile/data/datasources/doctor_profile_mock_data_source.dart';
+import '../../doctor/features/profile/data/datasources/doctor_profile_remote_data_source.dart';
 import '../../doctor/features/profile/data/repositories/doctor_profile_repository_impl.dart';
 import '../../doctor/features/profile/domain/repositories/doctor_profile_repository.dart';
 import '../../doctor/features/profile/presentation/controllers/doctor_profile_controller.dart';
@@ -171,14 +173,21 @@ Future<void> setupServiceLocator({bool? isMockApi}) async {
     ),
   );
 
-  // Doctor earnings and wallet. Money-moving capabilities stay gated until
-  // authenticated payout APIs are available.
+  // Doctor earnings and wallet.
   sl.registerLazySingleton<DoctorFinanceMockDataSource>(
     DoctorFinanceMockDataSource.new,
   );
+  sl.registerLazySingleton<DoctorFinanceRemoteDataSource>(
+    () => DoctorFinanceRemoteDataSource(
+      apiClient: sl<ApiClient>(),
+      tokenProvider: () async =>
+          Supabase.instance.client.auth.currentSession?.accessToken,
+    ),
+  );
   sl.registerLazySingleton<DoctorFinanceRepository>(
     () => DoctorFinanceRepositoryImpl(
-      dataSource: sl<DoctorFinanceMockDataSource>(),
+      mockDataSource: sl<DoctorFinanceMockDataSource>(),
+      remoteDataSource: sl<DoctorFinanceRemoteDataSource>(),
     ),
   );
   sl.registerLazySingleton<GetDoctorFinance>(
@@ -194,9 +203,17 @@ Future<void> setupServiceLocator({bool? isMockApi}) async {
   sl.registerLazySingleton<DoctorProfileMockDataSource>(
     DoctorProfileMockDataSource.new,
   );
+  sl.registerLazySingleton<DoctorProfileRemoteDataSource>(
+    () => DoctorProfileRemoteDataSource(
+      apiClient: sl<ApiClient>(),
+      tokenProvider: () async =>
+          Supabase.instance.client.auth.currentSession?.accessToken,
+    ),
+  );
   sl.registerLazySingleton<DoctorProfileRepository>(
     () => DoctorProfileRepositoryImpl(
-      dataSource: sl<DoctorProfileMockDataSource>(),
+      mockDataSource: sl<DoctorProfileMockDataSource>(),
+      remoteDataSource: sl<DoctorProfileRemoteDataSource>(),
     ),
   );
   sl.registerFactory<DoctorProfileController>(
