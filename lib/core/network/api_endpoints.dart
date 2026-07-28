@@ -25,6 +25,11 @@ abstract final class ApiEndpoints {
   static const String patientProfile = '/v1/patients/me';
   static const String healthReadings = '/v1/health/readings';
   static const String paymentIntents = '/v1/payments/intents';
+  static const String wallet = '/v1/wallet';
+  static const String walletTransactions = '/v1/wallet/transactions';
+  static const String walletEarnings = '/v1/wallet/earnings';
+  static const String paymentsIntent = '/v1/payments/intent';
+  static String paymentStatus(String id) => '/v1/payments/$id';
 
   static const Map<String, String> declared = {
     'authLogin': authLogin,
@@ -48,5 +53,9 @@ abstract final class ApiEndpoints {
     'patientProfile': patientProfile,
     'healthReadings': healthReadings,
     'paymentIntents': paymentIntents,
+    'wallet': wallet,
+    'walletTransactions': walletTransactions,
+    'walletEarnings': walletEarnings,
+    'paymentsIntent': paymentsIntent,
   };
 }

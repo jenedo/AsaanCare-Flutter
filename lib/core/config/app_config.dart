@@ -61,6 +61,8 @@ abstract final class AppConfig {
   }) {
     if (useMockApi) return;
 
+    validateRemoteApiUrl(apiBaseUrl, allowInsecureLocalApi: allowLocalHttp);
+
     if (requestTimeoutSeconds < 5 || requestTimeoutSeconds > 120) {
       throw StateError(
         'API_TIMEOUT_SECONDS must be between 5 and 120 seconds.',

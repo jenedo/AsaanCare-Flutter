@@ -46,6 +46,11 @@ import '../../features/auth/domain/usecases/logout_user.dart';
 import '../../features/auth/domain/usecases/register_doctor.dart';
 import '../../features/auth/domain/usecases/register_patient.dart';
 import '../../features/auth/presentation/controllers/auth_controller.dart';
+import '../../features/clinical_prescriptions/data/datasources/clinical_prescription_remote_data_source.dart';
+import '../../features/clinical_prescriptions/data/repositories/clinical_prescription_repository_impl.dart';
+import '../../features/clinical_prescriptions/data/repositories/mock_clinical_prescription_repository.dart';
+import '../../features/clinical_prescriptions/domain/repositories/clinical_prescription_repository.dart';
+import '../../features/clinical_prescriptions/presentation/controllers/clinical_prescriptions_controller.dart';
 import '../../features/doctors/data/datasources/doctor_mock_data_source.dart';
 import '../../features/doctors/data/datasources/doctor_remote_data_source.dart';
 import '../../features/doctors/data/repositories/doctor_repository_impl.dart';
@@ -54,6 +59,11 @@ import '../../features/doctors/domain/usecases/get_doctor_detail.dart';
 import '../../features/doctors/domain/usecases/get_doctors.dart';
 import '../../features/doctors/presentation/controllers/doctor_detail_controller.dart';
 import '../../features/doctors/presentation/controllers/find_doctors_controller.dart';
+import '../../features/medical_records/data/datasources/medical_records_remote_data_source.dart';
+import '../../features/medical_records/data/repositories/medical_records_repository_impl.dart';
+import '../../features/medical_records/data/repositories/mock_medical_records_repository.dart';
+import '../../features/medical_records/domain/repositories/medical_records_repository.dart';
+import '../../features/medical_records/presentation/controllers/medical_records_controller.dart';
 import '../../features/pharmacy/data/datasources/pharmacy_mock_data_source.dart';
 import '../../features/pharmacy/data/datasources/pharmacy_remote_data_source.dart';
 import '../../features/pharmacy/data/repositories/pharmacy_repository_impl.dart';
@@ -62,13 +72,16 @@ import '../../features/pharmacy/domain/usecases/get_popular_medicines.dart';
 import '../../features/pharmacy/domain/usecases/get_recent_prescription.dart';
 import '../../features/pharmacy/presentation/controllers/pharmacy_controller.dart';
 import '../../features/prescriptions/data/datasources/prescription_mock_data_source.dart';
+import '../../features/prescriptions/data/datasources/prescription_remote_data_source.dart';
 import '../../features/prescriptions/data/repositories/prescription_repository_impl.dart';
 import '../../features/prescriptions/domain/repositories/prescription_repository.dart';
 import '../../features/prescriptions/domain/usecases/delete_prescription.dart';
 import '../../features/prescriptions/domain/usecases/get_prescriptions.dart';
 import '../../features/prescriptions/domain/usecases/upload_prescription.dart';
 import '../../features/prescriptions/presentation/controllers/prescription_controller.dart';
+import '../../features/wallet/data/datasources/payment_remote_data_source.dart';
 import '../../features/wallet/data/datasources/wallet_mock_data_source.dart';
+import '../../features/wallet/data/datasources/wallet_remote_data_source.dart';
 import '../../features/wallet/data/repositories/wallet_repository_impl.dart';
 import '../../features/wallet/domain/repositories/wallet_repository.dart';
 import '../../features/wallet/domain/usecases/add_wallet_money.dart';
@@ -77,16 +90,6 @@ import '../../features/wallet/domain/usecases/get_wallet_snapshot.dart';
 import '../../features/wallet/domain/usecases/refund_wallet.dart';
 import '../../features/wallet/domain/usecases/wallet_payment_method_actions.dart';
 import '../../features/wallet/presentation/controllers/wallet_controller.dart';
-import '../../features/clinical_prescriptions/data/datasources/clinical_prescription_remote_data_source.dart';
-import '../../features/clinical_prescriptions/data/repositories/clinical_prescription_repository_impl.dart';
-import '../../features/clinical_prescriptions/data/repositories/mock_clinical_prescription_repository.dart';
-import '../../features/clinical_prescriptions/domain/repositories/clinical_prescription_repository.dart';
-import '../../features/clinical_prescriptions/presentation/controllers/clinical_prescriptions_controller.dart';
-import '../../features/medical_records/data/datasources/medical_records_remote_data_source.dart';
-import '../../features/medical_records/data/repositories/medical_records_repository_impl.dart';
-import '../../features/medical_records/data/repositories/mock_medical_records_repository.dart';
-import '../../features/medical_records/domain/repositories/medical_records_repository.dart';
-import '../../features/medical_records/presentation/controllers/medical_records_controller.dart';
 import '../config/app_config.dart';
 import '../network/api_client.dart';
 
@@ -314,11 +317,20 @@ Future<void> setupServiceLocator({bool? isMockApi}) async {
     ),
   );
 
-  // Wallet. Repository and mock datasource stay alive so balance and ledger
-  // changes persist while the application session is running.
+  // Wallet. Repository and mock/remote datasources stay registered.
   sl.registerLazySingleton<WalletMockDataSource>(() => WalletMockDataSource());
+  sl.registerLazySingleton<WalletRemoteDataSource>(
+    () => WalletRemoteDataSourceImpl(sl<ApiClient>()),
+  );
+  sl.registerLazySingleton<PaymentRemoteDataSource>(
+    () => PaymentRemoteDataSourceImpl(sl<ApiClient>()),
+  );
   sl.registerLazySingleton<WalletRepository>(
-    () => WalletRepositoryImpl(mockDataSource: sl<WalletMockDataSource>()),
+    () => WalletRepositoryImpl(
+      mockDataSource: sl<WalletMockDataSource>(),
+      remoteDataSource: sl<WalletRemoteDataSource>(),
+      paymentRemoteDataSource: sl<PaymentRemoteDataSource>(),
+    ),
   );
   sl.registerLazySingleton<GetWalletSnapshot>(
     () => GetWalletSnapshot(sl<WalletRepository>()),
@@ -355,9 +367,22 @@ Future<void> setupServiceLocator({bool? isMockApi}) async {
   sl.registerLazySingleton<PrescriptionMockDataSource>(
     () => PrescriptionMockDataSource(),
   );
+  sl.registerLazySingleton<PrescriptionRemoteDataSource>(
+    () => PrescriptionRemoteDataSource(
+      apiClient: sl<ApiClient>(),
+      tokenProvider: () async {
+        try {
+          return Supabase.instance.client.auth.currentSession?.accessToken;
+        } catch (_) {
+          return null;
+        }
+      },
+    ),
+  );
   sl.registerLazySingleton<PrescriptionRepository>(
     () => PrescriptionRepositoryImpl(
       mockDataSource: sl<PrescriptionMockDataSource>(),
+      remoteDataSource: sl<PrescriptionRemoteDataSource>(),
     ),
   );
   sl.registerLazySingleton<GetPrescriptions>(

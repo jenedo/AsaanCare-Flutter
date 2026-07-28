@@ -18,11 +18,23 @@ class DoctorRemoteDataSource {
   final ApiClient _apiClient;
   final AccessTokenProvider _tokenProvider;
 
-  Future<List<DoctorModel>> getDoctors() async {
+  Future<List<DoctorModel>> getDoctors({
+    String? specialty,
+    String? city,
+  }) async {
     final token = await _getToken();
+    final queryParams = <String, String>{};
+    if (specialty != null && specialty.trim().isNotEmpty) {
+      queryParams['specialty'] = specialty.trim();
+    }
+    if (city != null && city.trim().isNotEmpty) {
+      queryParams['city'] = city.trim();
+    }
+
     final response = await _apiClient.getJson(
       ApiEndpoints.doctors,
       bearerToken: token,
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
     );
 
     final rawList = response['doctors'] ?? response['data'] ?? response;
@@ -34,6 +46,10 @@ class DoctorRemoteDataSource {
     }
 
     return const [];
+  }
+
+  Future<DoctorModel> getDoctorById(String id) {
+    return getDoctorDetail(id);
   }
 
   Future<DoctorModel> getDoctorDetail(String doctorId) async {
@@ -51,14 +67,18 @@ class DoctorRemoteDataSource {
 
   Future<String> _getToken() async {
     final token = await _tokenProvider();
-    final currentSessionToken =
-        Supabase.instance.client.auth.currentSession?.accessToken;
-    final resolvedToken = token ?? currentSessionToken;
-
-    if (resolvedToken == null || resolvedToken.trim().isEmpty) {
-      throw const AuthException('Session expired. Please log in again.');
+    if (token != null && token.trim().isNotEmpty) {
+      return token.trim();
     }
+    try {
+      final currentSessionToken =
+          Supabase.instance.client.auth.currentSession?.accessToken;
+      if (currentSessionToken != null &&
+          currentSessionToken.trim().isNotEmpty) {
+        return currentSessionToken.trim();
+      }
+    } catch (_) {}
 
-    return resolvedToken.trim();
+    throw const AuthException('Session expired. Please log in again.');
   }
 }

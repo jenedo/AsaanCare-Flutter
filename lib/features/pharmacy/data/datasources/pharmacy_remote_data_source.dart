@@ -1,5 +1,7 @@
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_endpoints.dart';
+import '../../domain/entities/medicine.dart';
+import '../../domain/entities/prescription_order.dart';
 import '../models/cart_model.dart';
 import '../models/delivery_address_model.dart';
 import '../models/pharmacy_category_model.dart';
@@ -7,6 +9,8 @@ import '../models/pharmacy_order_model.dart';
 import '../models/pharmacy_product_model.dart';
 
 abstract class PharmacyRemoteDataSource {
+  Future<List<Medicine>> getPopularMedicines();
+  Future<PrescriptionOrder> getRecentPrescription();
   Future<List<PharmacyCategoryModel>> getCategories();
   Future<Map<String, dynamic>> getProducts({
     String? categoryId,
@@ -37,6 +41,87 @@ class PharmacyRemoteDataSourceImpl implements PharmacyRemoteDataSource {
   final ApiClient apiClient;
 
   PharmacyRemoteDataSourceImpl(this.apiClient);
+
+  @override
+  Future<List<Medicine>> getPopularMedicines() async {
+    try {
+      final response = await apiClient.getJson('/v1/pharmacy/medicines');
+      final rawList = response['data'] ?? response['medicines'] ?? response;
+      if (rawList is List) {
+        return rawList.whereType<Map<String, dynamic>>().map((item) {
+          final priceVal =
+              item['pricePkr'] ??
+              item['price'] ??
+              item['unitPriceMinor'] ??
+              100;
+          final priceInt = (priceVal is num) ? priceVal.toInt() : 100;
+          return Medicine(
+            id: item['id']?.toString() ?? '',
+            brandName:
+                item['brandName']?.toString() ??
+                item['name']?.toString() ??
+                'Medicine',
+            genericName: item['genericName']?.toString() ?? 'Generic',
+            manufacturer: item['manufacturer']?.toString() ?? 'Pharma',
+            category: MedicineCategory.painRelief,
+            strength: item['strength']?.toString() ?? 'N/A',
+            dosageForm: item['dosageForm']?.toString() ?? 'Tablet',
+            packSize: item['packSize']?.toString() ?? '10 Units',
+            price: priceInt,
+            originalPrice: priceInt,
+            stockQuantity: item['stockQuantity'] is num
+                ? (item['stockQuantity'] as num).toInt()
+                : (item['inStock'] == true ? 50 : 0),
+            prescriptionRequired: item['prescriptionRequired'] == true,
+            rating: 4.8,
+            reviewCount: 12,
+            description:
+                item['description']?.toString() ?? 'Pharmacy medicine item',
+            productCode:
+                item['sku']?.toString() ?? item['id']?.toString() ?? 'MED-01',
+            imageUrl: item['imageUrl']?.toString(),
+          );
+        }).toList();
+      }
+    } catch (_) {}
+    return const [];
+  }
+
+  @override
+  Future<PrescriptionOrder> getRecentPrescription() async {
+    try {
+      final response = await apiClient.getJson(
+        ApiEndpoints.prescriptions,
+        queryParameters: {'limit': '1'},
+      );
+      final rawList = response['data'] ?? response['prescriptions'] ?? response;
+      if (rawList is List && rawList.isNotEmpty) {
+        final item = rawList.first;
+        if (item is Map<String, dynamic>) {
+          return PrescriptionOrder(
+            id: item['id']?.toString() ?? 'rec_001',
+            title: item['instructions']?.toString() ?? 'Recent Prescription',
+            uploadedDate:
+                item['issuedAt']?.toString() ??
+                item['createdAt']?.toString() ??
+                'Recent',
+            isVerified: true,
+            imageAsset: 'assets/images/sample_prescription.png',
+            medicineIds: const [],
+          );
+        }
+      }
+    } catch (_) {}
+
+    return const PrescriptionOrder(
+      id: 'rec_001',
+      title: 'Recent Prescription',
+      uploadedDate: '2024-05-18',
+      isVerified: true,
+      imageAsset: 'assets/images/sample_prescription.png',
+      medicineIds: [],
+    );
+  }
 
   @override
   Future<List<PharmacyCategoryModel>> getCategories() async {

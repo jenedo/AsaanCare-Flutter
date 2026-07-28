@@ -22,8 +22,18 @@ class DoctorMockDataSource {
     }),
   );
 
-  Future<List<DoctorModel>> getDoctors() async {
+  Future<List<DoctorModel>> getDoctors({
+    String? specialty,
+    String? city,
+  }) async {
     await Future<void>.delayed(const Duration(milliseconds: 250));
+    if (specialty != null && specialty.isNotEmpty) {
+      return _doctors
+          .where(
+            (d) => d.specialty.toLowerCase().contains(specialty.toLowerCase()),
+          )
+          .toList();
+    }
     return _doctors;
   }
 
