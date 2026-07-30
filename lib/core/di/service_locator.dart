@@ -99,7 +99,7 @@ final GetIt sl = GetIt.instance;
 
 Future<void> setupServiceLocator({bool? isMockApi}) async {
   final useMock = isMockApi ?? AppConfig.useMockApi;
-  // AppConfig.validate(); // disabled: no NestJS backend
+  AppConfig.validate();
 
   // Networking
   sl.registerLazySingleton<http.Client>(() => http.Client());
@@ -119,7 +119,10 @@ Future<void> setupServiceLocator({bool? isMockApi}) async {
   sl.registerLazySingleton<AuthDataSource>(
     () => AppConfig.useMockApi
         ? AuthMockDataSource()
-        : SupabaseAuthDataSource(client: Supabase.instance.client),
+        : SupabaseAuthDataSource(
+            client: Supabase.instance.client,
+            apiClient: sl<ApiClient>(),
+          ),
   );
 
   sl.registerLazySingleton<AuthRepository>(

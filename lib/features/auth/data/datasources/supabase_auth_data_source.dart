@@ -3,6 +3,9 @@
 
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
+import '../../../../core/network/api_client.dart';
+import '../../../../core/network/api_endpoints.dart';
+import '../../../../core/network/api_exception.dart';
 import '../../domain/entities/auth_user.dart';
 import '../../domain/entities/doctor_registration_payload.dart';
 import '../../domain/exceptions/auth_exception.dart';
@@ -10,16 +13,25 @@ import '../models/auth_user_model.dart';
 import 'auth_data_source.dart';
 
 class SupabaseAuthDataSource implements AuthDataSource {
-  SupabaseAuthDataSource({required supabase.SupabaseClient client})
-    : _client = client;
+  SupabaseAuthDataSource({
+    required supabase.SupabaseClient client,
+    required ApiClient apiClient,
+  }) : _client = client,
+       _apiClient = apiClient;
 
   final supabase.SupabaseClient _client;
+  final ApiClient _apiClient;
 
   @override
   Future<AuthUserModel?> getCurrentUser() async {
     final authUser = _client.auth.currentUser;
-    if (authUser == null) return null;
-    return _userFromAuthMetadata(authUser);
+    final session = _client.auth.currentSession;
+    if (authUser == null || session == null) return null;
+
+    return _bootstrapUser(
+      accessToken: session.accessToken,
+      requestedRole: UserRole.patient,
+    );
   }
 
   @override
@@ -28,13 +40,15 @@ class SupabaseAuthDataSource implements AuthDataSource {
     required String password,
   }) async {
     try {
-      await _client.auth.signInWithPassword(
+      final response = await _client.auth.signInWithPassword(
         email: emailOrPhone,
         password: password,
       );
 
-      return _requireCurrentUser(
-        'The authenticated user profile is unavailable.',
+      return _bootstrapAuthResponse(
+        response,
+        requestedRole: UserRole.patient,
+        unavailableMessage: 'The authenticated user profile is unavailable.',
       );
     } on supabase.AuthException catch (error) {
       throw AuthException(error.message);
@@ -48,14 +62,17 @@ class SupabaseAuthDataSource implements AuthDataSource {
     required String password,
   }) async {
     try {
-      await _client.auth.signUp(
+      final response = await _client.auth.signUp(
         email: emailOrPhone,
         password: password,
         data: {'full_name': fullName, 'role': 'patient'},
       );
 
-      return _requireCurrentUser(
-        'The registered patient profile is unavailable.',
+      return _bootstrapAuthResponse(
+        response,
+        requestedRole: UserRole.patient,
+        fullName: fullName,
+        unavailableMessage: 'The registered patient profile is unavailable.',
       );
     } on supabase.AuthException catch (error) {
       throw AuthException(error.message);
@@ -67,14 +84,19 @@ class SupabaseAuthDataSource implements AuthDataSource {
     DoctorRegistrationPayload payload,
   ) async {
     try {
-      await _client.auth.signUp(
+      final response = await _client.auth.signUp(
         email: payload.email,
         password: payload.password,
         data: {'full_name': payload.fullName, 'role': 'doctor'},
       );
 
-      return _requireCurrentUser(
-        'The registered doctor profile is unavailable.',
+      return _bootstrapAuthResponse(
+        response,
+        requestedRole: UserRole.doctor,
+        fullName: payload.fullName,
+        pmdcNumber: payload.pmdcOrLicenseNumber,
+        specialty: payload.specialty,
+        unavailableMessage: 'The registered doctor profile is unavailable.',
       );
     } on supabase.AuthException catch (error) {
       throw AuthException(error.message);
@@ -90,37 +112,71 @@ class SupabaseAuthDataSource implements AuthDataSource {
     }
   }
 
-  Future<AuthUserModel> _requireCurrentUser(String unavailableMessage) async {
-    final user = await getCurrentUser();
-    if (user == null) {
+  Future<AuthUserModel> _bootstrapAuthResponse(
+    supabase.AuthResponse response, {
+    required UserRole requestedRole,
+    required String unavailableMessage,
+    String? fullName,
+    String? pmdcNumber,
+    String? specialty,
+  }) {
+    final authUser = response.user ?? _client.auth.currentUser;
+    final session = response.session ?? _client.auth.currentSession;
+
+    if (authUser == null || session == null) {
       throw AuthException(unavailableMessage);
     }
-    return user;
-  }
 
-  AuthUserModel _userFromAuthMetadata(supabase.User authUser) {
-    final metadata = authUser.userMetadata ?? const <String, dynamic>{};
-
-    return AuthUserModel(
-      id: authUser.id,
-      fullName: _metadataString(metadata['full_name']),
-      emailOrPhone: authUser.email ?? '',
-      role: _roleFromMetadata(metadata['role']),
+    return _bootstrapUser(
+      accessToken: session.accessToken,
+      requestedRole: requestedRole,
+      fullName: fullName,
+      pmdcNumber: pmdcNumber,
+      specialty: specialty,
     );
   }
 
-  String _metadataString(Object? value) {
-    if (value == null) return '';
-    return value.toString().trim();
+  Future<AuthUserModel> _bootstrapUser({
+    required String accessToken,
+    required UserRole requestedRole,
+    String? fullName,
+    String? pmdcNumber,
+    String? specialty,
+  }) async {
+    final response = await _apiClient.postJson(
+      ApiEndpoints.authBootstrap,
+      bearerToken: accessToken,
+      body: {
+        'role': requestedRole.name.toUpperCase(),
+        if (fullName != null && fullName.trim().isNotEmpty)
+          'fullName': fullName.trim(),
+        if (pmdcNumber != null && pmdcNumber.trim().isNotEmpty)
+          'pmdcNumber': pmdcNumber.trim(),
+        if (specialty != null && specialty.trim().isNotEmpty)
+          'specialty': specialty.trim(),
+      },
+    );
+
+    try {
+      final data = _requireJsonObject(response['data']);
+      final user = _requireJsonObject(data['user']);
+      return AuthUserModel.fromJson(user);
+    } on FormatException catch (error) {
+      throw ApiException(
+        'The server returned an invalid application profile.',
+        cause: error,
+      );
+    }
   }
 
-  UserRole _roleFromMetadata(Object? value) {
-    final normalized = _metadataString(value).toLowerCase();
-
-    for (final role in UserRole.values) {
-      if (role.name == normalized) return role;
+  Map<String, dynamic> _requireJsonObject(Object? value) {
+    if (value is Map<String, dynamic>) {
+      return value;
+    }
+    if (value is Map) {
+      return Map<String, dynamic>.from(value);
     }
 
-    return UserRole.patient;
+    throw const FormatException('Required response object is missing.');
   }
 }

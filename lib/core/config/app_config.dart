@@ -33,17 +33,32 @@ abstract final class AppConfig {
       Duration(seconds: requestTimeoutSeconds);
 
   static void validateSupabaseConfiguration() {
+    validateSupabaseConfigurationValues(
+      useMockApi: useMockApi,
+      supabaseUrl: supabaseUrl,
+      supabasePublishableKey: supabasePublishableKey,
+    );
+  }
+
+  @visibleForTesting
+  static void validateSupabaseConfigurationValues({
+    required bool useMockApi,
+    required String supabaseUrl,
+    required String supabasePublishableKey,
+  }) {
     if (useMockApi) return;
 
-    if (supabaseUrl.trim().isEmpty || supabasePublishableKey.trim().isEmpty) {
-      throw StateError(
-        'Remote auth mode requires SUPABASE_URL and '
-        'SUPABASE_PUBLISHABLE_KEY.',
-      );
+    if (supabaseUrl.trim().isEmpty) {
+      throw StateError('Remote auth mode requires SUPABASE_URL.');
+    }
+
+    if (supabasePublishableKey.trim().isEmpty) {
+      throw StateError('Remote auth mode requires SUPABASE_PUBLISHABLE_KEY.');
     }
   }
 
   static void validate() {
+    validateSupabaseConfiguration();
     validateValues(
       useMockApi: useMockApi,
       apiBaseUrl: apiBaseUrl,
