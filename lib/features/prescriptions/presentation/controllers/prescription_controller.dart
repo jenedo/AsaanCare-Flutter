@@ -37,6 +37,7 @@ class PrescriptionController extends ChangeNotifier {
   bool _isDownloading = false;
   String? _errorMessage;
   bool _isDisposed = false;
+  int _deleteOperationId = 0;
 
   UnmodifiableListView<PrescriptionRecord> get records => _records;
   PrescriptionControllerStatus get status => _status;
@@ -51,6 +52,7 @@ class PrescriptionController extends ChangeNotifier {
   bool get hasError => _status == PrescriptionControllerStatus.error;
 
   void reset() {
+    _deleteOperationId += 1;
     _records = UnmodifiableListView<PrescriptionRecord>(const []);
     _status = PrescriptionControllerStatus.initial;
     _isUploading = false;
@@ -226,8 +228,20 @@ class PrescriptionController extends ChangeNotifier {
       return false;
     }
 
-    _setDeleting(true);
-    _clearError();
+    final deleteOperationId = ++_deleteOperationId;
+    final previousRecords = _records;
+    final previousStatus = _status;
+    final optimisticRecords = previousRecords
+        .where((record) => record.id != trimmedPrescriptionId)
+        .toList(growable: false);
+
+    _records = UnmodifiableListView<PrescriptionRecord>(optimisticRecords);
+    _status = optimisticRecords.isEmpty
+        ? PrescriptionControllerStatus.empty
+        : PrescriptionControllerStatus.loaded;
+    _isDeleting = true;
+    _errorMessage = null;
+    _safeNotifyListeners();
 
     try {
       await _deletePrescription(
@@ -235,31 +249,23 @@ class PrescriptionController extends ChangeNotifier {
         prescriptionId: trimmedPrescriptionId,
       );
 
-      if (_isDisposed) return false;
+      if (_isDisposed || deleteOperationId != _deleteOperationId) return false;
 
-      final updatedRecords = _records
-          .where((record) => record.id != trimmedPrescriptionId)
-          .toList(growable: false);
-
-      _records = UnmodifiableListView<PrescriptionRecord>(updatedRecords);
-
-      _setStatus(
-        updatedRecords.isEmpty
-            ? PrescriptionControllerStatus.empty
-            : PrescriptionControllerStatus.loaded,
-        errorMessage: null,
-      );
-
+      _isDeleting = false;
+      _safeNotifyListeners();
       return true;
     } catch (error, stackTrace) {
       _debugLog('deleteRecord failed', error, stackTrace);
 
-      if (_isDisposed) return false;
+      if (_isDisposed || deleteOperationId != _deleteOperationId) return false;
 
-      _setError('Delete failed. Please try again.');
+      _records = previousRecords;
+      _status = previousStatus;
+      _isDeleting = false;
+      _errorMessage = 'Delete failed. The record was restored.';
+
+      _safeNotifyListeners();
       return false;
-    } finally {
-      _setDeleting(false);
     }
   }
 
@@ -314,11 +320,6 @@ class PrescriptionController extends ChangeNotifier {
 
   void _setUploading(bool value) {
     _isUploading = value;
-    _safeNotifyListeners();
-  }
-
-  void _setDeleting(bool value) {
-    _isDeleting = value;
     _safeNotifyListeners();
   }
 
