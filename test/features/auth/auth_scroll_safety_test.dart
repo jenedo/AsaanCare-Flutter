@@ -62,7 +62,7 @@ void main() {
           isNull,
           reason: 'Login overflow at $size keyboard=$keyboard',
         );
-        expect(find.text('Welcome back'), findsOneWidget);
+        expect(find.text('Sign In'), findsWidgets);
         expect(find.byType(SingleChildScrollView), findsWidgets);
 
         final registerController = _buildController();
@@ -95,10 +95,10 @@ void main() {
         home: LoginScreen(authController: controller),
       );
 
-      expect(find.text('Welcome back'), findsOneWidget);
-      expect(find.text('Email or phone'), findsOneWidget);
+      expect(find.text('Sign In'), findsWidgets);
+      expect(find.text('Email'), findsOneWidget);
       expect(find.text('Password'), findsOneWidget);
-      expect(find.text('Login'), findsOneWidget);
+      expect(find.text('Swipe to Sign In'), findsOneWidget);
       expect(find.text('Forgot password?'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },

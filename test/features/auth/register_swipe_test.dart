@@ -48,7 +48,7 @@ void main() {
     expect(completionCount, 0);
   });
 
-  testWidgets('patient registration navigates to /patient-home', (
+  testWidgets('patient registration navigates to /login', (
     tester,
   ) async {
     final repository = _FakeAuthRepository();
@@ -56,7 +56,42 @@ void main() {
 
     await _completeStepOne(tester);
 
-    expect(find.text('Patient Home Page'), findsOneWidget);
+    final RegisterScreenState state = tester.state(find.byType(RegisterScreen));
+    state.setStepTwoDataForTesting(
+      specialty: 'General Physician',
+      pmdc: 'PMDC-54321',
+      experience: '5',
+      clinic: 'Care Clinic',
+      fee: '1000',
+      medicalLicense: RegistrationUpload(
+        name: 'license.pdf',
+        bytes: Uint8List.fromList([1, 2, 3]),
+        extension: 'pdf',
+      ),
+      idFront: RegistrationUpload(
+        name: 'front.png',
+        bytes: Uint8List.fromList([1, 2, 3]),
+        extension: 'png',
+      ),
+      idBack: RegistrationUpload(
+        name: 'back.png',
+        bytes: Uint8List.fromList([1, 2, 3]),
+        extension: 'png',
+      ),
+      agreed: true,
+    );
+    await tester.pump();
+
+    final swipeControl = find.byType(SwipeNextControl);
+    await tester.ensureVisible(swipeControl);
+    final swipeState = tester.state(swipeControl);
+    final dynamic swipeWidget = swipeState.widget;
+    final future = swipeWidget.onComplete();
+    await tester.pump(const Duration(seconds: 3));
+    await future;
+    await tester.pumpAndSettle();
+
+    expect(find.text('Login Page'), findsOneWidget);
     expect(repository.registerPatientCount, 1);
   });
 
@@ -185,6 +220,8 @@ Future<void> _pumpRegisterScreen(
             ),
           ),
         ),
+        AppRoutes.login: (context) =>
+            const Scaffold(body: Text('Login Page')),
         AppRoutes.patientHome: (context) =>
             const Scaffold(body: Text('Patient Home Page')),
       },
